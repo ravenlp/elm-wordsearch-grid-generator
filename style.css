@@ -1,0 +1,12 @@
+.row {
+  display: table-row;
+}
+
+.cell {
+  display: table-cell;
+  border: 1px solid black;
+  width: 40px;
+  height: 40px;
+  vertical-align: middle;
+  text-align: center;
+}

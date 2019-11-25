@@ -9,6 +9,10 @@ module Main exposing (..)
 
 import Browser
 import Random
+import Random.String
+import Random.Char
+import Random.List
+
 
 import Html exposing (Html, button, div, text)
 import Html.Attributes as Attribute
@@ -31,11 +35,17 @@ main =
 
 
 -- MODEL
+
+
+
  
 type alias Model = 
-  { content: WordGrid String
+  { grid: WordGrid
+  , size: Int
   , counter: Int
+  , wordList: List String
   }
+  
 
 type alias Flags =
   {}
@@ -44,15 +54,19 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
   let
-    test = WordGrid.fromList ["A","A","B","A","B","C","A","C","A"] 3
-    model2 = { content= test, counter= 4}
+    test = WordGrid.create 5 ' '
+    model_ = 
+      { grid = test
+      , size = 5
+      , counter= 10
+      , wordList= getWordList}
     
-    _ = Debug.log "Grid" (WordGrid.toList test)
-    _ = Debug.log "Grid" (WordGrid.getSize test)
-    _ = Debug.log "Grid" (WordGrid.toLists test)
-    _ = Debug.log "Grid" (WordGrid.getRow test 1)
+    _ = Debug.log "WordGrid" (WordGrid.toList test)
+    _ = Debug.log "WordGrid" (WordGrid.getSize test)
+    _ = Debug.log "WordGrid" (WordGrid.toLists test)
+    _ = Debug.log "WordGrid" (WordGrid.getRow test 1)
   in
-    (model2, Cmd.none)
+    (model_, Cmd.none)
   
 
 
@@ -63,19 +77,17 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.none
 
--- Utils
-
-randomize: Random.Generator Int
-randomize = 
-  Random.int 1 10
-
 -- UPDATE
 
 
 type Msg
-  = Increment
-  | Decrement
-  | NewValue Int
+  = NewValue Int
+  | GetWordList
+  | GenerateGame
+  | FillGridWithRandomChars 
+  | FillGridWithRandomChars_ String
+  | PickRandomWord
+  | PickRandomWordResult (Maybe String, List String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -86,11 +98,78 @@ update msg model =
         _ = Debug.log "Number" number
       in
         (model , Cmd.none)
-    Increment ->
-      ({ model | counter = model.counter + 1 }, Random.generate NewValue randomize)
-    Decrement ->
-      ({ model | counter = model.counter - 1 }, Cmd.none)
 
+    GetWordList ->
+      let 
+        _ = Debug.log "GetWordList" 1
+      in
+        ({ model | wordList=  getWordList}, Cmd.none)
+
+    FillGridWithRandomChars_ randomWord->
+      let 
+        _ = Debug.log "GetWordList" randomWord
+        grid_ = WordGrid.fromList (String.toList randomWord) (WordGrid.getSize model.grid)
+      in
+      ({model | grid = grid_}, Cmd.none)
+
+    FillGridWithRandomChars ->
+      ( model,
+        model.grid
+          |> WordGrid.getSize
+          |> \x -> x * x
+          |> randomString
+          |> Random.generate FillGridWithRandomChars_ )
+         
+    GenerateGame ->
+      let
+        grid_ = generateGame model
+      in
+      ({ model | grid = grid_ }, Cmd.none)
+
+    PickRandomWord -> 
+      let 
+        list_ = List.filter (\s -> (String.length s) <= model.size) model.wordList
+        _ = Debug.log "new word list" list_
+      in
+      ({ model | wordList = list_ }, Random.generate PickRandomWordResult (randomItemFromList list_))
+
+    PickRandomWordResult selectedWord->
+      case selectedWord of
+        (Nothing, _) -> 
+          let 
+            _ = Debug.log "No more words" 1
+          in
+          (model , Cmd.none)
+        
+        (Just word, list) ->
+          let 
+            _ = Debug.log "New word choosen" word
+          in
+          ({ model | wordList = list}, Cmd.none)
+
+
+-- Random UTILS
+
+randomString : Int -> Random.Generator String
+randomString lenght =
+    Random.String.string lenght Random.Char.lowerCaseLatin
+
+randomCellPos: (Int, Int) -> (Int, Int) -> Random.Generator (Int, Int)
+randomCellPos (x1, y1) (x2,y2) =
+  Random.pair (Random.int x1 x2) (Random.int y1 y2)
+
+randomCellPosFromOrigin : (Int, Int) -> Random.Generator (Int, Int)
+randomCellPosFromOrigin (x,y) =
+  randomCellPos (0,0) (x,y)
+
+randomItemFromList : (List a) -> Random.Generator ( Maybe a, List a )
+randomItemFromList list =
+  Random.List.choose list
+  
+
+randomize: Random.Generator Int
+randomize = 
+  Random.int 1 10
 
 
 -- VIEW
@@ -99,10 +178,9 @@ update msg model =
 view : Model -> Html Msg
 view model =
   div []
-    [ button [ onClick Decrement ] [ text "-" ]
-    , div [] [ text (String.fromInt model.counter) ]
-    , button [ onClick Increment ] [ text "+" ]
-    , div [] [ showGrid (WordGrid.toLists model.content)]
+    [ button [ onClick FillGridWithRandomChars ] [ text "Generate" ]
+    , button [ onClick PickRandomWord ] [ text "Filter" ]
+    , div [] [ showGrid (WordGrid.toLists model.grid)]
     -- , div [] [ createRows model.counter ]
     ]
 
@@ -129,7 +207,7 @@ createRows times =
       ]
       rowList
 
-showGrid: List (List String) -> Html Msg 
+showGrid: List (List Char) -> Html Msg 
 showGrid list = 
   div
     [ Attribute.class "grid"
@@ -145,9 +223,21 @@ showGrid list =
   --   x :: xs -> 
   --     showRow x showGrid 
 
-showRow: List String -> Html Msg
+showRow: List Char -> Html Msg
 showRow row = 
   div
     [ Attribute.class "row"
     ]
-    (List.map (\a -> div [Attribute.class "cell"][text a]) row)
+    (List.map (\a -> div [Attribute.class "cell"][text (String.fromChar a)]) row)
+
+generateGame: Model -> WordGrid
+generateGame model =
+  let 
+    _ = Debug.log "GENERATING" 1
+  
+  in
+    model.grid
+
+getWordList: List String
+getWordList = 
+  ["ability", "able", "about", "above", "abroad", "absence", "absent", "absolute", "accept", "accident", "accord", "account", "accuse", "accustom", "ache", "across", "act", "action", "active", "actor", "actress", "actual", "add", "address", "admire", "admission", "admit", "adopt", "adoption", "advance", "advantage", "adventure", "advertise", "advice", "advise", "affair", "afford", "afraid", "after", "afternoon"]

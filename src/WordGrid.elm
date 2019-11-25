@@ -1,9 +1,9 @@
 module WordGrid exposing 
   ( WordGrid
   , create
-  , fromList
   , toList
   , toLists
+  , fromList
   , getRow
   , getSize
   , map
@@ -13,16 +13,16 @@ import Array exposing (Array)
 
 -- Grid
 
-type WordGrid a
+type WordGrid
   = WordGrid 
     { size : Int,
-      data : Array a
+      data : Array Char
     }
     
 
 -- INIT
 
-create : Int -> a -> WordGrid a
+create : Int -> Char -> WordGrid
 create n seed = 
   WordGrid 
     { 
@@ -34,21 +34,21 @@ create n seed =
 
 
 -- TODO MAYBE
-fromList: List a -> Int -> WordGrid a
+fromList: List Char -> Int -> WordGrid
 fromList list size_ = 
   WordGrid {
     size = size_,
     data = Array.fromList (List.take (size_*size_) list)
     }
 
-toList: WordGrid a -> List a
+toList: WordGrid -> List Char
 toList (WordGrid {data})  = 
   Array.toList data
 
-toLists: WordGrid a -> List (List a)
+toLists: WordGrid -> List (List Char)
 toLists = 
   let 
-    toLists_ : Int -> WordGrid a -> List (List a)
+    toLists_ : Int -> WordGrid -> List (List Char)
     toLists_ i g = 
       if i < getSize g
       then (getRow g i) :: (toLists_ (i + 1) g)
@@ -58,11 +58,11 @@ toLists =
 
 -- GET & SET
 
-getSize: WordGrid a -> Int
+getSize: WordGrid -> Int
 getSize (WordGrid {size}) =
   size
 
-getRow: (WordGrid a) -> Int -> List a
+getRow: (WordGrid) -> Int -> List Char
 getRow (WordGrid {size, data}) row = 
   let
     list = Array.toList data
@@ -70,11 +70,11 @@ getRow (WordGrid {size, data}) row =
   in 
     List.take size rest
 
-map: (a -> b) -> WordGrid a -> WordGrid b
+map: (Char -> Char) -> WordGrid -> WordGrid
 map f (WordGrid w) =
   WordGrid {
     size = w.size
   , data = Array.map f w.data
   }
 
---setLetter: WordGrid a -> WordGrid b
+--setLetter: WordGrid -> WordGrid b

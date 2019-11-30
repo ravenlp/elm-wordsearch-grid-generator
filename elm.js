@@ -5202,6 +5202,29 @@ var $author$project$WordGrid$create = F2(
 				size: n
 			});
 	});
+var $elm$core$Elm$JsArray$appendN = _JsArray_appendN;
+var $elm$core$Elm$JsArray$slice = _JsArray_slice;
+var $elm$core$Array$appendHelpBuilder = F2(
+	function (tail, builder) {
+		var tailLen = $elm$core$Elm$JsArray$length(tail);
+		var notAppended = ($elm$core$Array$branchFactor - $elm$core$Elm$JsArray$length(builder.tail)) - tailLen;
+		var appended = A3($elm$core$Elm$JsArray$appendN, $elm$core$Array$branchFactor, builder.tail, tail);
+		return (notAppended < 0) ? {
+			nodeList: A2(
+				$elm$core$List$cons,
+				$elm$core$Array$Leaf(appended),
+				builder.nodeList),
+			nodeListSize: builder.nodeListSize + 1,
+			tail: A3($elm$core$Elm$JsArray$slice, notAppended, tailLen, tail)
+		} : ((!notAppended) ? {
+			nodeList: A2(
+				$elm$core$List$cons,
+				$elm$core$Array$Leaf(appended),
+				builder.nodeList),
+			nodeListSize: builder.nodeListSize + 1,
+			tail: $elm$core$Elm$JsArray$empty
+		} : {nodeList: builder.nodeList, nodeListSize: builder.nodeListSize, tail: appended});
+	});
 var $elm$core$List$drop = F2(
 	function (n, list) {
 		drop:
@@ -5223,6 +5246,341 @@ var $elm$core$List$drop = F2(
 			}
 		}
 	});
+var $elm$core$Basics$ge = _Utils_ge;
+var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
+var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var $elm$core$Array$tailIndex = function (len) {
+	return (len >>> 5) << 5;
+};
+var $elm$core$Array$sliceLeft = F2(
+	function (from, array) {
+		var len = array.a;
+		var tree = array.c;
+		var tail = array.d;
+		if (!from) {
+			return array;
+		} else {
+			if (_Utils_cmp(
+				from,
+				$elm$core$Array$tailIndex(len)) > -1) {
+				return A4(
+					$elm$core$Array$Array_elm_builtin,
+					len - from,
+					$elm$core$Array$shiftStep,
+					$elm$core$Elm$JsArray$empty,
+					A3(
+						$elm$core$Elm$JsArray$slice,
+						from - $elm$core$Array$tailIndex(len),
+						$elm$core$Elm$JsArray$length(tail),
+						tail));
+			} else {
+				var skipNodes = (from / $elm$core$Array$branchFactor) | 0;
+				var helper = F2(
+					function (node, acc) {
+						if (node.$ === 'SubTree') {
+							var subTree = node.a;
+							return A3($elm$core$Elm$JsArray$foldr, helper, acc, subTree);
+						} else {
+							var leaf = node.a;
+							return A2($elm$core$List$cons, leaf, acc);
+						}
+					});
+				var leafNodes = A3(
+					$elm$core$Elm$JsArray$foldr,
+					helper,
+					_List_fromArray(
+						[tail]),
+					tree);
+				var nodesToInsert = A2($elm$core$List$drop, skipNodes, leafNodes);
+				if (!nodesToInsert.b) {
+					return $elm$core$Array$empty;
+				} else {
+					var head = nodesToInsert.a;
+					var rest = nodesToInsert.b;
+					var firstSlice = from - (skipNodes * $elm$core$Array$branchFactor);
+					var initialBuilder = {
+						nodeList: _List_Nil,
+						nodeListSize: 0,
+						tail: A3(
+							$elm$core$Elm$JsArray$slice,
+							firstSlice,
+							$elm$core$Elm$JsArray$length(head),
+							head)
+					};
+					return A2(
+						$elm$core$Array$builderToArray,
+						true,
+						A3($elm$core$List$foldl, $elm$core$Array$appendHelpBuilder, initialBuilder, rest));
+				}
+			}
+		}
+	});
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Array$bitMask = 4294967295 >>> (32 - $elm$core$Array$shiftStep);
+var $elm$core$Elm$JsArray$unsafeGet = _JsArray_unsafeGet;
+var $elm$core$Array$fetchNewTail = F4(
+	function (shift, end, treeEnd, tree) {
+		fetchNewTail:
+		while (true) {
+			var pos = $elm$core$Array$bitMask & (treeEnd >>> shift);
+			var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+			if (_v0.$ === 'SubTree') {
+				var sub = _v0.a;
+				var $temp$shift = shift - $elm$core$Array$shiftStep,
+					$temp$end = end,
+					$temp$treeEnd = treeEnd,
+					$temp$tree = sub;
+				shift = $temp$shift;
+				end = $temp$end;
+				treeEnd = $temp$treeEnd;
+				tree = $temp$tree;
+				continue fetchNewTail;
+			} else {
+				var values = _v0.a;
+				return A3($elm$core$Elm$JsArray$slice, 0, $elm$core$Array$bitMask & end, values);
+			}
+		}
+	});
+var $elm$core$Array$hoistTree = F3(
+	function (oldShift, newShift, tree) {
+		hoistTree:
+		while (true) {
+			if ((_Utils_cmp(oldShift, newShift) < 1) || (!$elm$core$Elm$JsArray$length(tree))) {
+				return tree;
+			} else {
+				var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, 0, tree);
+				if (_v0.$ === 'SubTree') {
+					var sub = _v0.a;
+					var $temp$oldShift = oldShift - $elm$core$Array$shiftStep,
+						$temp$newShift = newShift,
+						$temp$tree = sub;
+					oldShift = $temp$oldShift;
+					newShift = $temp$newShift;
+					tree = $temp$tree;
+					continue hoistTree;
+				} else {
+					return tree;
+				}
+			}
+		}
+	});
+var $elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
+var $elm$core$Array$sliceTree = F3(
+	function (shift, endIdx, tree) {
+		var lastPos = $elm$core$Array$bitMask & (endIdx >>> shift);
+		var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, lastPos, tree);
+		if (_v0.$ === 'SubTree') {
+			var sub = _v0.a;
+			var newSub = A3($elm$core$Array$sliceTree, shift - $elm$core$Array$shiftStep, endIdx, sub);
+			return (!$elm$core$Elm$JsArray$length(newSub)) ? A3($elm$core$Elm$JsArray$slice, 0, lastPos, tree) : A3(
+				$elm$core$Elm$JsArray$unsafeSet,
+				lastPos,
+				$elm$core$Array$SubTree(newSub),
+				A3($elm$core$Elm$JsArray$slice, 0, lastPos + 1, tree));
+		} else {
+			return A3($elm$core$Elm$JsArray$slice, 0, lastPos, tree);
+		}
+	});
+var $elm$core$Array$sliceRight = F2(
+	function (end, array) {
+		var len = array.a;
+		var startShift = array.b;
+		var tree = array.c;
+		var tail = array.d;
+		if (_Utils_eq(end, len)) {
+			return array;
+		} else {
+			if (_Utils_cmp(
+				end,
+				$elm$core$Array$tailIndex(len)) > -1) {
+				return A4(
+					$elm$core$Array$Array_elm_builtin,
+					end,
+					startShift,
+					tree,
+					A3($elm$core$Elm$JsArray$slice, 0, $elm$core$Array$bitMask & end, tail));
+			} else {
+				var endIdx = $elm$core$Array$tailIndex(end);
+				var depth = $elm$core$Basics$floor(
+					A2(
+						$elm$core$Basics$logBase,
+						$elm$core$Array$branchFactor,
+						A2($elm$core$Basics$max, 1, endIdx - 1)));
+				var newShift = A2($elm$core$Basics$max, 5, depth * $elm$core$Array$shiftStep);
+				return A4(
+					$elm$core$Array$Array_elm_builtin,
+					end,
+					newShift,
+					A3(
+						$elm$core$Array$hoistTree,
+						startShift,
+						newShift,
+						A3($elm$core$Array$sliceTree, startShift, endIdx, tree)),
+					A4($elm$core$Array$fetchNewTail, startShift, end, endIdx, tree));
+			}
+		}
+	});
+var $elm$core$Array$translateIndex = F2(
+	function (index, _v0) {
+		var len = _v0.a;
+		var posIndex = (index < 0) ? (len + index) : index;
+		return (posIndex < 0) ? 0 : ((_Utils_cmp(posIndex, len) > 0) ? len : posIndex);
+	});
+var $elm$core$Array$slice = F3(
+	function (from, to, array) {
+		var correctTo = A2($elm$core$Array$translateIndex, to, array);
+		var correctFrom = A2($elm$core$Array$translateIndex, from, array);
+		return (_Utils_cmp(correctFrom, correctTo) > 0) ? $elm$core$Array$empty : A2(
+			$elm$core$Array$sliceLeft,
+			correctFrom,
+			A2($elm$core$Array$sliceRight, correctTo, array));
+	});
+var $author$project$WordGrid$getRow = F2(
+	function (_v0, row) {
+		var size = _v0.a.size;
+		var data = _v0.a.data;
+		return A3($elm$core$Array$slice, row * size, (row * size) + size, data);
+	});
+var $author$project$WordGrid$getSize = function (_v0) {
+	var size = _v0.a.size;
+	return size;
+};
+var $author$project$Main$getWordList = _List_fromArray(
+	['ability', 'able', 'about', 'above', 'abroad', 'absence', 'absent', 'absolute', 'accept', 'accident', 'accord', 'account', 'accuse', 'accustom', 'ache', 'across', 'act', 'action', 'active', 'actor', 'actress', 'actual', 'add', 'address', 'admire', 'admission', 'admit', 'adopt', 'adoption', 'advance', 'advantage', 'adventure', 'advertise', 'advice', 'advise', 'affair', 'afford', 'afraid', 'after', 'afternoon']);
+var $elm$core$Debug$log = _Debug_log;
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$WordGrid$toList = function (_v0) {
+	var data = _v0.a.data;
+	return $elm$core$Array$toList(data);
+};
+var $author$project$WordGrid$toLists = function () {
+	var toLists_ = F2(
+		function (i, g) {
+			return (_Utils_cmp(
+				i,
+				$author$project$WordGrid$getSize(g)) < 0) ? A2(
+				$elm$core$List$cons,
+				$elm$core$Array$toList(
+					A2($author$project$WordGrid$getRow, g, i)),
+				A2(toLists_, i + 1, g)) : _List_Nil;
+		});
+	return toLists_(0);
+}();
+var $author$project$Main$init = function (flags) {
+	var test = A2($author$project$WordGrid$create, 5, $elm$core$Maybe$Nothing);
+	var model_ = {counter: 10, grid: test, size: 5, wordList: $author$project$Main$getWordList};
+	var _v0 = A2(
+		$elm$core$Debug$log,
+		'WordGrid getRow',
+		A2($author$project$WordGrid$getRow, test, 0));
+	var _v1 = A2(
+		$elm$core$Debug$log,
+		'WordGrid toList',
+		$author$project$WordGrid$toList(test));
+	var _v2 = A2(
+		$elm$core$Debug$log,
+		'WordGrid size',
+		$author$project$WordGrid$getSize(test));
+	var _v3 = A2(
+		$elm$core$Debug$log,
+		'WordGrid toLists',
+		$author$project$WordGrid$toLists(test));
+	var _v4 = A2(
+		$elm$core$Debug$log,
+		'WordGrid',
+		A2($author$project$WordGrid$getRow, test, 1));
+	return _Utils_Tuple2(model_, $elm$core$Platform$Cmd$none);
+};
+var $elm$core$Platform$Sub$batch = _Platform_batch;
+var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
+var $author$project$Main$subscriptions = function (model) {
+	return $elm$core$Platform$Sub$none;
+};
+var $author$project$Main$FillGridWithRandomChars_ = function (a) {
+	return {$: 'FillGridWithRandomChars_', a: a};
+};
+var $author$project$Main$PickRandomWordResult = function (a) {
+	return {$: 'PickRandomWordResult', a: a};
+};
+var $author$project$Main$PlaceSelectedWord = F3(
+	function (a, b, c) {
+		return {$: 'PlaceSelectedWord', a: a, b: b, c: c};
+	});
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $author$project$Directions$E = {$: 'E'};
+var $author$project$Directions$N = {$: 'N'};
+var $author$project$Directions$NE = {$: 'NE'};
+var $author$project$Directions$NW = {$: 'NW'};
+var $author$project$Directions$S = {$: 'S'};
+var $author$project$Directions$SE = {$: 'SE'};
+var $author$project$Directions$SW = {$: 'SW'};
+var $author$project$Directions$W = {$: 'W'};
+var $author$project$Directions$fromInt = function (index) {
+	switch (index) {
+		case 0:
+			return $author$project$Directions$E;
+		case 1:
+			return $author$project$Directions$SE;
+		case 2:
+			return $author$project$Directions$S;
+		case 3:
+			return $author$project$Directions$SW;
+		case 4:
+			return $author$project$Directions$W;
+		case 5:
+			return $author$project$Directions$NW;
+		case 6:
+			return $author$project$Directions$N;
+		default:
+			return $author$project$Directions$NE;
+	}
+};
+var $elm$core$Array$fromListHelp = F3(
+	function (list, nodeList, nodeListSize) {
+		fromListHelp:
+		while (true) {
+			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, list);
+			var jsArray = _v0.a;
+			var remainingItems = _v0.b;
+			if (_Utils_cmp(
+				$elm$core$Elm$JsArray$length(jsArray),
+				$elm$core$Array$branchFactor) < 0) {
+				return A2(
+					$elm$core$Array$builderToArray,
+					true,
+					{nodeList: nodeList, nodeListSize: nodeListSize, tail: jsArray});
+			} else {
+				var $temp$list = remainingItems,
+					$temp$nodeList = A2(
+					$elm$core$List$cons,
+					$elm$core$Array$Leaf(jsArray),
+					nodeList),
+					$temp$nodeListSize = nodeListSize + 1;
+				list = $temp$list;
+				nodeList = $temp$nodeList;
+				nodeListSize = $temp$nodeListSize;
+				continue fromListHelp;
+			}
+		}
+	});
+var $elm$core$Array$fromList = function (list) {
+	if (!list.b) {
+		return $elm$core$Array$empty;
+	} else {
+		return A3($elm$core$Array$fromListHelp, list, _List_Nil, 0);
+	}
+};
 var $elm$core$List$takeReverse = F3(
 	function (n, list, kept) {
 		takeReverse:
@@ -5349,126 +5707,20 @@ var $elm$core$List$take = F2(
 	function (n, list) {
 		return A3($elm$core$List$takeFast, 0, n, list);
 	});
-var $author$project$WordGrid$getRow = F2(
-	function (_v0, row) {
-		var size = _v0.a.size;
-		var data = _v0.a.data;
-		var list = $elm$core$Array$toList(data);
-		var rest = A2($elm$core$List$drop, row * size, list);
-		return A2($elm$core$List$take, size, rest);
-	});
-var $author$project$WordGrid$getSize = function (_v0) {
-	var size = _v0.a.size;
-	return size;
-};
-var $author$project$Main$getWordList = _List_fromArray(
-	['ability', 'able', 'about', 'above', 'abroad', 'absence', 'absent', 'absolute', 'accept', 'accident', 'accord', 'account', 'accuse', 'accustom', 'ache', 'across', 'act', 'action', 'active', 'actor', 'actress', 'actual', 'add', 'address', 'admire', 'admission', 'admit', 'adopt', 'adoption', 'advance', 'advantage', 'adventure', 'advertise', 'advice', 'advise', 'affair', 'afford', 'afraid', 'after', 'afternoon']);
-var $elm$core$Debug$log = _Debug_log;
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$WordGrid$toList = function (_v0) {
-	var data = _v0.a.data;
-	return $elm$core$Array$toList(data);
-};
-var $author$project$WordGrid$toLists = function () {
-	var toLists_ = F2(
-		function (i, g) {
-			return (_Utils_cmp(
-				i,
-				$author$project$WordGrid$getSize(g)) < 0) ? A2(
-				$elm$core$List$cons,
-				A2($author$project$WordGrid$getRow, g, i),
-				A2(toLists_, i + 1, g)) : _List_Nil;
-		});
-	return toLists_(0);
-}();
-var $author$project$Main$init = function (flags) {
-	var test = A2(
-		$author$project$WordGrid$create,
-		5,
-		_Utils_chr(' '));
-	var model_ = {counter: 10, grid: test, size: 5, wordList: $author$project$Main$getWordList};
-	var _v0 = A2(
-		$elm$core$Debug$log,
-		'WordGrid',
-		$author$project$WordGrid$toList(test));
-	var _v1 = A2(
-		$elm$core$Debug$log,
-		'WordGrid',
-		$author$project$WordGrid$getSize(test));
-	var _v2 = A2(
-		$elm$core$Debug$log,
-		'WordGrid',
-		$author$project$WordGrid$toLists(test));
-	var _v3 = A2(
-		$elm$core$Debug$log,
-		'WordGrid',
-		A2($author$project$WordGrid$getRow, test, 1));
-	return _Utils_Tuple2(model_, $elm$core$Platform$Cmd$none);
-};
-var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
-var $author$project$Main$subscriptions = function (model) {
-	return $elm$core$Platform$Sub$none;
-};
-var $author$project$Main$FillGridWithRandomChars_ = function (a) {
-	return {$: 'FillGridWithRandomChars_', a: a};
-};
-var $author$project$Main$PickRandomWordResult = function (a) {
-	return {$: 'PickRandomWordResult', a: a};
-};
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
-var $elm$core$Array$fromListHelp = F3(
-	function (list, nodeList, nodeListSize) {
-		fromListHelp:
-		while (true) {
-			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, list);
-			var jsArray = _v0.a;
-			var remainingItems = _v0.b;
-			if (_Utils_cmp(
-				$elm$core$Elm$JsArray$length(jsArray),
-				$elm$core$Array$branchFactor) < 0) {
-				return A2(
-					$elm$core$Array$builderToArray,
-					true,
-					{nodeList: nodeList, nodeListSize: nodeListSize, tail: jsArray});
-			} else {
-				var $temp$list = remainingItems,
-					$temp$nodeList = A2(
-					$elm$core$List$cons,
-					$elm$core$Array$Leaf(jsArray),
-					nodeList),
-					$temp$nodeListSize = nodeListSize + 1;
-				list = $temp$list;
-				nodeList = $temp$nodeList;
-				nodeListSize = $temp$nodeListSize;
-				continue fromListHelp;
-			}
-		}
-	});
-var $elm$core$Array$fromList = function (list) {
-	if (!list.b) {
-		return $elm$core$Array$empty;
-	} else {
-		return A3($elm$core$Array$fromListHelp, list, _List_Nil, 0);
-	}
-};
 var $author$project$WordGrid$fromList = F2(
 	function (list, size_) {
 		return $author$project$WordGrid$WordGrid(
 			{
 				data: $elm$core$Array$fromList(
-					A2($elm$core$List$take, size_ * size_, list)),
+					A2(
+						$elm$core$List$take,
+						size_ * size_,
+						A2(
+							$elm$core$List$map,
+							function (e) {
+								return $elm$core$Maybe$Just(e);
+							},
+							list))),
 				size: size_
 			});
 	});
@@ -5479,7 +5731,6 @@ var $elm$random$Random$Seed = F2(
 	function (a, b) {
 		return {$: 'Seed', a: a, b: b};
 	});
-var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
 var $elm$random$Random$next = function (_v0) {
 	var state0 = _v0.a;
 	var incr = _v0.b;
@@ -5611,7 +5862,6 @@ var $elm_community$random_extra$Random$List$get = F2(
 		return $elm$core$List$head(
 			A2($elm$core$List$drop, index, list));
 	});
-var $elm$core$Bitwise$and = _Bitwise_and;
 var $elm$core$Basics$negate = function (n) {
 	return -n;
 };
@@ -5745,81 +5995,98 @@ var $elm$core$String$toList = function (string) {
 };
 var $author$project$Main$update = F2(
 	function (msg, model) {
-		switch (msg.$) {
-			case 'NewValue':
-				var number = msg.a;
-				var _v1 = A2($elm$core$Debug$log, 'Number', number);
-				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-			case 'GetWordList':
-				var _v2 = A2($elm$core$Debug$log, 'GetWordList', 1);
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{wordList: $author$project$Main$getWordList}),
-					$elm$core$Platform$Cmd$none);
-			case 'FillGridWithRandomChars_':
-				var randomWord = msg.a;
-				var grid_ = A2(
-					$author$project$WordGrid$fromList,
-					$elm$core$String$toList(randomWord),
-					$author$project$WordGrid$getSize(model.grid));
-				var _v3 = A2($elm$core$Debug$log, 'GetWordList', randomWord);
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{grid: grid_}),
-					$elm$core$Platform$Cmd$none);
-			case 'FillGridWithRandomChars':
-				return _Utils_Tuple2(
-					model,
-					function (x) {
-						return A2(
-							$elm$random$Random$generate,
-							$author$project$Main$FillGridWithRandomChars_,
-							$author$project$Main$randomString(x * x));
-					}(
-						$author$project$WordGrid$getSize(model.grid)));
-			case 'GenerateGame':
-				var grid_ = $author$project$Main$generateGame(model);
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{grid: grid_}),
-					$elm$core$Platform$Cmd$none);
-			case 'PickRandomWord':
-				var list_ = A2(
-					$elm$core$List$filter,
-					function (s) {
-						return _Utils_cmp(
-							$elm$core$String$length(s),
-							model.size) < 1;
-					},
-					model.wordList);
-				var _v4 = A2($elm$core$Debug$log, 'new word list', list_);
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{wordList: list_}),
-					A2(
-						$elm$random$Random$generate,
-						$author$project$Main$PickRandomWordResult,
-						$author$project$Main$randomItemFromList(list_)));
-			default:
-				var selectedWord = msg.a;
-				if (selectedWord.a.$ === 'Nothing') {
-					var _v6 = selectedWord.a;
-					var _v7 = A2($elm$core$Debug$log, 'No more words', 1);
+		update:
+		while (true) {
+			switch (msg.$) {
+				case 'NewValue':
+					var number = msg.a;
+					var _v1 = A2($elm$core$Debug$log, 'Number', number);
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-				} else {
-					var word = selectedWord.a.a;
-					var list = selectedWord.b;
-					var _v8 = A2($elm$core$Debug$log, 'New word choosen', word);
+				case 'GetWordList':
+					var _v2 = A2($elm$core$Debug$log, 'GetWordList', 1);
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{wordList: list}),
+							{wordList: $author$project$Main$getWordList}),
 						$elm$core$Platform$Cmd$none);
-				}
+				case 'FillGridWithRandomChars_':
+					var randomWord = msg.a;
+					var grid_ = A2(
+						$author$project$WordGrid$fromList,
+						$elm$core$String$toList(randomWord),
+						$author$project$WordGrid$getSize(model.grid));
+					var _v3 = A2($elm$core$Debug$log, 'GetWordList', randomWord);
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{grid: grid_}),
+						$elm$core$Platform$Cmd$none);
+				case 'FillGridWithRandomChars':
+					return _Utils_Tuple2(
+						model,
+						function (x) {
+							return A2(
+								$elm$random$Random$generate,
+								$author$project$Main$FillGridWithRandomChars_,
+								$author$project$Main$randomString(x * x));
+						}(
+							$author$project$WordGrid$getSize(model.grid)));
+				case 'GenerateGame':
+					var grid_ = $author$project$Main$generateGame(model);
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{grid: grid_}),
+						$elm$core$Platform$Cmd$none);
+				case 'PickRandomWord':
+					var list_ = A2(
+						$elm$core$List$filter,
+						function (s) {
+							return _Utils_cmp(
+								$elm$core$String$length(s),
+								model.size) < 1;
+						},
+						model.wordList);
+					var _v4 = A2($elm$core$Debug$log, 'new word list', list_);
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{wordList: list_}),
+						A2(
+							$elm$random$Random$generate,
+							$author$project$Main$PickRandomWordResult,
+							$author$project$Main$randomItemFromList(list_)));
+				case 'PickRandomWordResult':
+					var selectedWord = msg.a;
+					if (selectedWord.a.$ === 'Nothing') {
+						var _v6 = selectedWord.a;
+						var _v7 = A2($elm$core$Debug$log, 'No more words', 1);
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					} else {
+						var word = selectedWord.a.a;
+						var list = selectedWord.b;
+						var _v8 = A2($elm$core$Debug$log, 'New word choosen', word);
+						var $temp$msg = A3(
+							$author$project$Main$PlaceSelectedWord,
+							word,
+							_Utils_Tuple2(0, 0),
+							$author$project$Directions$fromInt(0)),
+							$temp$model = _Utils_update(
+							model,
+							{wordList: list});
+						msg = $temp$msg;
+						model = $temp$model;
+						continue update;
+					}
+				default:
+					var word = msg.a;
+					var position = msg.b;
+					var direction = msg.c;
+					var _v9 = A2($elm$core$Debug$log, 'Placing ', word);
+					var _v10 = A2($elm$core$Debug$log, 'Pos ', position);
+					var _v11 = A2($elm$core$Debug$log, 'Dir ', direction);
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			}
 		}
 	});
 var $author$project$Main$FillGridWithRandomChars = {$: 'FillGridWithRandomChars'};
@@ -5856,6 +6123,14 @@ var $elm$core$String$cons = _String_cons;
 var $elm$core$String$fromChar = function (_char) {
 	return A2($elm$core$String$cons, _char, '');
 };
+var $author$project$Main$showChar = function (posibleChar) {
+	if (posibleChar.$ === 'Just') {
+		var a = posibleChar.a;
+		return $elm$core$String$fromChar(a);
+	} else {
+		return ' ';
+	}
+};
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Main$showRow = function (row) {
@@ -5877,7 +6152,7 @@ var $author$project$Main$showRow = function (row) {
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
-							$elm$core$String$fromChar(a))
+							$author$project$Main$showChar(a))
 						]));
 			},
 			row));

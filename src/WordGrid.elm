@@ -6,6 +6,8 @@ module WordGrid exposing
   , fromList
   , getRow
   , getSize
+  , getCell
+  , setCell
   , map
   )
 
@@ -13,8 +15,7 @@ import Array exposing (Array)
 
 -- Grid
 
-type WordGrid
-  = WordGrid 
+type alias WordGrid =  
     { size : Int,
       data : Array (Maybe Char)
     }
@@ -24,11 +25,7 @@ type WordGrid
 
 create : Int -> (Maybe Char) -> WordGrid
 create n seed = 
-  WordGrid 
-    { 
-      size= n,
-      data= Array.repeat (n * n) seed
-    }
+  WordGrid n (Array.repeat (n * n) seed)
 
 -- DISPLAY
 
@@ -36,14 +33,11 @@ create n seed =
 -- TODO MAYBE
 fromList: List Char -> Int -> WordGrid
 fromList list size_ = 
-  WordGrid {
-    size = size_,
-    data = Array.fromList (List.take (size_*size_) (List.map (\e -> Just e) list))
-    }
+  WordGrid size_ (Array.fromList (List.take (size_*size_) (List.map (\e -> Just e) list)))
 
 toList: WordGrid -> List (Maybe Char)
-toList (WordGrid {data})  = 
-  Array.toList data
+toList grid = 
+  Array.toList grid.data
 
 toLists: WordGrid -> List (List (Maybe Char))
 toLists = 
@@ -59,15 +53,20 @@ toLists =
 -- GET & SET
 
 getSize: WordGrid -> Int
-getSize (WordGrid {size}) =
-  size
+getSize grid =
+  grid.size
+
+getRealPosition: (Int, Int) -> WordGrid -> Int
+getRealPosition (x, y) grid=
+  x * grid.size + y
+
 
 getRow: WordGrid -> Int -> Array (Maybe Char)
-getRow (WordGrid {size, data}) row = 
-    Array.slice (row * size) (row * size + size) data
+getRow grid row = 
+    Array.slice (row * grid.size) (row * grid.size + grid.size) grid.data
 
-getCell: (Int, Int) -> WordGrid -> Maybe Char
-getCell (x, y) grid = 
+getCell: WordGrid -> (Int, Int) ->  Maybe Char
+getCell grid (x, y) = 
   let 
     row = getRow grid x
     result = Array.get y row
@@ -76,12 +75,24 @@ getCell (x, y) grid =
     Just a -> a
     Nothing -> Nothing
 
+setCell: WordGrid -> (Int, Int) -> Maybe Char -> Maybe WordGrid
+setCell grid (x, y) new =
+  case new of
+    Nothing -> Just grid
+    Just letter -> 
+      let
+        cell = getCell grid (x, y)
+        position = getRealPosition (x,y) grid
+        _ = Debug.log "----- ADDING " (position, new)
+      in 
+        case cell of
+          Nothing -> Just (WordGrid grid.size (Array.set position new grid.data))
+          Just _ -> Nothing
+
+
 
 map: ((Maybe Char) -> (Maybe Char)) -> WordGrid -> WordGrid
-map f (WordGrid w) =
-  WordGrid {
-    size = w.size
-  , data = Array.map f w.data
-  }
+map f grid =
+  WordGrid grid.size (Array.map f grid.data)
 
 --setLetter: WordGrid -> WordGrid b

@@ -2,7 +2,8 @@ module Directions exposing
   ( Direction,
   next,
   fromInt,
-  toInt
+  toInt,
+  random
   )
 import Random exposing (Generator, int, map)
 
@@ -53,4 +54,4 @@ toInt dir =
     NE -> (1,-1)
 
 random: Generator Direction
-random = map fromInt (int 0 7)
+random = map fromInt (int 0 0)

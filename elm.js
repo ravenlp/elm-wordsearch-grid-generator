@@ -5443,7 +5443,7 @@ var $author$project$WordGrid$getSize = function (grid) {
 	return grid.size;
 };
 var $author$project$Main$getWordList = _List_fromArray(
-	['ability', 'able', 'about', 'above', 'abroad', 'absence', 'absent', 'absolute', 'accept', 'accident', 'accord', 'account', 'accuse', 'accustom', 'ache', 'across', 'act', 'action', 'active', 'actor', 'actress', 'actual', 'add', 'address', 'admire', 'admission', 'admit', 'adopt', 'adoption', 'advance', 'advantage', 'adventure', 'advertise', 'advice', 'advise', 'affair', 'afford', 'afraid', 'after', 'afternoon']);
+	['ability', 'able', 'about', 'above', 'abroad', 'absence', 'absent', 'absolute', 'accept', 'accident', 'accord', 'account', 'accuse', 'accustom', 'ache', 'across', 'act', 'action', 'active', 'actor', 'actress', 'actual', 'add', 'address', 'admire', 'admission', 'admit', 'adopt', 'adoption', 'advance', 'advantage', 'adventure', 'advertise', 'advice', 'advise', 'affair', 'afford', 'afraid', 'after', 'afternoon', 'again', 'against', 'age', 'agency', 'agent', 'ago', 'agree', 'agriculture', 'ahead', 'aim', 'air', 'airplane', 'alike', 'alive', 'all', 'allow', 'allowance', 'almost', 'alone', 'along', 'aloud', 'already', 'also', 'although', 'altogether', 'always', 'ambition', 'ambitious', 'among', 'amongst', 'amount', 'amuse', 'ancient', 'and', 'anger', 'angle', 'angry', 'animal', 'annoy', 'annoyance', 'another', 'answer', 'anxiety', 'anxious', 'any', 'anybody', 'anyhow', 'anyone', 'anything', 'anyway', 'anywhere', 'apart', 'apology', 'appear', 'appearance', 'applaud', 'applause', 'apple', 'application', 'apply', 'appoint', 'approve', 'arch', 'argue', 'arise', 'arm', 'army', 'around', 'arrange', 'arrest', 'arrive', 'arrow', 'art', 'article', 'artificial', 'as', 'ash', 'ashamed', 'aside', 'ask', 'asleep', 'association', 'astonish', 'at', 'attack', 'attempt', 'attend', 'attention', 'attentive', 'attract', 'attraction', 'attractive', 'audience', 'aunt', 'autumn', 'avenue', 'average', 'avoid', 'avoidance', 'awake', 'away', 'awkward', 'axe', 'baby', 'back', 'backward', 'bad', 'bag', 'baggage', 'bake', 'balance', 'ball', 'band', 'bank', 'bar', 'barber', 'bare', 'bargain', 'barrel', 'base', 'basic', 'basin', 'basis', 'basket', 'bath', 'bathe', 'battery', 'battle', 'bay', 'be', 'beak', 'beam', 'bean', 'bear', 'beard', 'beast', 'beat', 'beauty', 'because', 'become', 'bed', 'bedroom', 'before', 'beg', 'begin', 'behave', 'behavior', 'behind', 'being', 'belief', 'believe', 'bell', 'belong', 'below', 'belt', 'bend', 'beneath', 'berry', 'beside', 'besides', 'best', 'better', 'between', 'beyond', 'bicycle', 'big', 'bill', 'bind', 'bird', 'birth', 'bit', 'bite', 'bitter', 'black', 'blade', 'blame', 'bleed', 'bless', 'blind', 'block', 'blood', 'blow', 'blue', 'board', 'boast', 'boat', 'body', 'boil', 'bold', 'bone', 'book', 'border', 'borrow', 'both', 'bottle', 'bottom', 'bound', 'boundary', 'bow', 'bowl', 'box', 'boy', 'brain', 'branch', 'brass', 'brave', 'bravery', 'bread', 'breadth', 'break', 'breakfast', 'breath', 'breathe', 'bribe', 'bribery', 'brick', 'bridge', 'bright', 'brighten', 'bring', 'broad', 'broadcast', 'brother', 'brown', 'brush', 'bucket', 'build', 'bunch', 'bundle', 'burn', 'burst', 'bury', 'bus', 'bush', 'business', 'businesslike', 'businessman', 'busy', 'but', 'butter', 'button', 'buy', 'by']);
 var $elm$core$Debug$log = _Debug_log;
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
@@ -5502,17 +5502,17 @@ var $author$project$Main$PickRandomWordResult = function (a) {
 var $author$project$Main$PlaceSelectedWord = function (a) {
 	return {$: 'PlaceSelectedWord', a: a};
 };
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
+var $elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
+		}
 	});
+var $elm$core$List$concat = function (lists) {
+	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
+};
 var $elm$core$Array$fromListHelp = F3(
 	function (list, nodeList, nodeListSize) {
 		fromListHelp:
@@ -5690,6 +5690,41 @@ var $author$project$WordGrid$fromList = F2(
 						},
 						list))));
 	});
+var $author$project$WordGrid$fillEmpty = F2(
+	function (grid, chars) {
+		var list = $elm$core$List$concat(
+			$author$project$WordGrid$toLists(grid));
+		var filled = A3(
+			$elm$core$List$map2,
+			F2(
+				function (x, y) {
+					if (x.$ === 'Nothing') {
+						return y;
+					} else {
+						var c = x.a;
+						return c;
+					}
+				}),
+			list,
+			chars);
+		var grid_ = A2(
+			$author$project$WordGrid$fromList,
+			filled,
+			$author$project$WordGrid$getSize(grid));
+		var _v0 = A2($elm$core$Debug$log, 'MEGA LIST', list);
+		return grid_;
+	});
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
 var $elm$random$Random$Generate = function (a) {
 	return {$: 'Generate', a: a};
 };
@@ -5800,14 +5835,6 @@ var $author$project$Main$generateGame = function (model) {
 	var _v0 = A2($elm$core$Debug$log, 'GENERATING', 1);
 	return model.grid;
 };
-var $elm$core$List$append = F2(
-	function (xs, ys) {
-		if (!ys.b) {
-			return xs;
-		} else {
-			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
-		}
-	});
 var $elm$random$Random$constant = function (value) {
 	return $elm$random$Random$Generator(
 		function (seed) {
@@ -5953,7 +5980,7 @@ var $author$project$Directions$fromInt = function (index) {
 var $author$project$Directions$random = A2(
 	$elm$random$Random$map,
 	$author$project$Directions$fromInt,
-	A2($elm$random$Random$int, 0, 0));
+	A2($elm$random$Random$int, 0, 7));
 var $elm$random$Random$pair = F2(
 	function (genA, genB) {
 		return A3(
@@ -5987,7 +6014,7 @@ var $author$project$Main$randomStartingValues = F2(
 			A2(
 				$author$project$Main$randomCellPos,
 				_Utils_Tuple2(0, 0),
-				_Utils_Tuple2(size, size)),
+				_Utils_Tuple2(size - 1, size - 1)),
 			$author$project$Directions$random);
 	});
 var $elm$core$Char$fromCode = _Char_fromCode;
@@ -6044,6 +6071,7 @@ var $elm$core$String$foldr = _String_foldr;
 var $elm$core$String$toList = function (string) {
 	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
 };
+var $elm$core$Basics$neq = _Utils_notEqual;
 var $author$project$Directions$toInt = function (dir) {
 	switch (dir.$) {
 		case 'E':
@@ -6064,45 +6092,23 @@ var $author$project$Directions$toInt = function (dir) {
 			return _Utils_Tuple2(1, -1);
 	}
 };
-var $author$project$Main$getNextPosition = F3(
-	function (_v0, direction, s) {
+var $author$project$Main$getNextPosition = F2(
+	function (_v0, direction) {
 		var x = _v0.a;
 		var y = _v0.b;
 		var _v1 = $author$project$Directions$toInt(direction);
 		var dx = _v1.a;
 		var dy = _v1.b;
-		var x_ = x + (dx * s);
-		var y_ = y + (dy * s);
-		var _v2 = A2(
-			$elm$core$Debug$log,
-			'            Initial',
-			_Utils_Tuple2(x, y));
-		var _v3 = A2(
-			$elm$core$Debug$log,
-			'            NEW',
-			_Utils_Tuple2(x_, y_));
+		var x_ = x + dx;
+		var y_ = y + dy;
 		return _Utils_Tuple2(x_, y_);
 	});
-var $elm$core$List$repeatHelp = F3(
-	function (result, n, value) {
-		repeatHelp:
-		while (true) {
-			if (n <= 0) {
-				return result;
-			} else {
-				var $temp$result = A2($elm$core$List$cons, value, result),
-					$temp$n = n - 1,
-					$temp$value = value;
-				result = $temp$result;
-				n = $temp$n;
-				value = $temp$value;
-				continue repeatHelp;
-			}
-		}
-	});
-var $elm$core$List$repeat = F2(
-	function (n, value) {
-		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
+var $author$project$Main$positionOutOfBounds = F2(
+	function (_v0, grid) {
+		var x = _v0.a;
+		var y = _v0.b;
+		var size = $author$project$WordGrid$getSize(grid);
+		return (_Utils_cmp(x, size) > -1) || ((_Utils_cmp(y, size) > -1) || ((x < 0) || (y < 0)));
 	});
 var $elm$core$Array$getHelp = F3(
 	function (shift, index, tree) {
@@ -6214,10 +6220,6 @@ var $author$project$WordGrid$setCell = F3(
 				$author$project$WordGrid$getCell,
 				grid,
 				_Utils_Tuple2(x, y));
-			var _v2 = A2(
-				$elm$core$Debug$log,
-				'----- ADDING ',
-				_Utils_Tuple2(position, _new));
 			if (cell.$ === 'Nothing') {
 				return $elm$core$Maybe$Just(
 					A2(
@@ -6225,7 +6227,8 @@ var $author$project$WordGrid$setCell = F3(
 						grid.size,
 						A3($elm$core$Array$set, position, _new, grid.data)));
 			} else {
-				return $elm$core$Maybe$Nothing;
+				var c = cell.a;
+				return _Utils_eq(c, letter) ? $elm$core$Maybe$Just(grid) : $elm$core$Maybe$Nothing;
 			}
 		}
 	});
@@ -6247,73 +6250,59 @@ var $elm$core$Maybe$withDefault = F2(
 			return _default;
 		}
 	});
-var $author$project$Main$tryToPlaceChars = F3(
-	function (chars, grid, positions) {
+var $author$project$Main$tryToPlaceChars = F4(
+	function (chars, grid, position, dir) {
 		tryToPlaceChars:
 		while (true) {
-			var position_ = A2(
-				$elm$core$Maybe$withDefault,
-				_List_Nil,
-				$elm$core$List$tail(positions));
-			var position = $elm$core$List$head(positions);
+			var sanityCheck = A2($author$project$Main$positionOutOfBounds, position, grid);
+			var position_ = A2($author$project$Main$getNextPosition, position, dir);
 			var chars_ = A2(
 				$elm$core$Maybe$withDefault,
 				_List_Nil,
 				$elm$core$List$tail(chars));
 			var _char = $elm$core$List$head(chars);
-			var grid_ = A3(
-				$author$project$WordGrid$setCell,
-				grid,
-				A2(
-					$elm$core$Maybe$withDefault,
-					_Utils_Tuple2(0, 0),
-					position),
-				_char);
-			var _v0 = A2($elm$core$Debug$log, 'char', _char);
-			var _v1 = A2($elm$core$Debug$log, 'chars_', chars_);
-			var _v2 = A2($elm$core$Debug$log, 'position', position);
-			var _v3 = A2($elm$core$Debug$log, 'position_', position_);
-			var _v4 = A2($elm$core$Debug$log, 'grid_', grid_);
-			var _v5 = _Utils_Tuple3(_char, position, grid_);
-			_v5$0:
+			var grid_ = A3($author$project$WordGrid$setCell, grid, position, _char);
+			var _v0 = _Utils_Tuple3(sanityCheck, _char, grid_);
+			_v0$0:
 			while (true) {
-				_v5$1:
+				_v0$1:
 				while (true) {
-					if (_v5.c.$ === 'Just') {
-						if (_v5.a.$ === 'Nothing') {
-							break _v5$0;
+					if (_v0.c.$ === 'Just') {
+						if (_v0.a) {
+							break _v0$0;
 						} else {
-							if (_v5.b.$ === 'Nothing') {
-								break _v5$1;
+							if (_v0.b.$ === 'Nothing') {
+								break _v0$1;
 							} else {
-								var g = _v5.c.a;
+								var g = _v0.c.a;
 								var $temp$chars = chars_,
 									$temp$grid = g,
-									$temp$positions = position_;
+									$temp$position = position_,
+									$temp$dir = dir;
 								chars = $temp$chars;
 								grid = $temp$grid;
-								positions = $temp$positions;
+								position = $temp$position;
+								dir = $temp$dir;
 								continue tryToPlaceChars;
 							}
 						}
 					} else {
-						if (_v5.a.$ === 'Nothing') {
-							break _v5$0;
+						if (_v0.a) {
+							break _v0$0;
 						} else {
-							if (_v5.b.$ === 'Nothing') {
-								break _v5$1;
+							if (_v0.b.$ === 'Nothing') {
+								break _v0$1;
 							} else {
-								var _v8 = _v5.c;
+								var _v2 = _v0.c;
 								return $elm$core$Maybe$Nothing;
 							}
 						}
 					}
 				}
-				var _v7 = _v5.b;
+				var _v1 = _v0.b;
 				return $elm$core$Maybe$Just(grid);
 			}
-			var _v6 = _v5.a;
-			return $elm$core$Maybe$Just(grid);
+			return $elm$core$Maybe$Nothing;
 		}
 	});
 var $author$project$Main$tryToPlaceWord = F2(
@@ -6322,20 +6311,9 @@ var $author$project$Main$tryToPlaceWord = F2(
 		var position = _v0.b;
 		var direction = _v0.c;
 		var nextPosition = position;
-		var positions = A2(
-			$elm$core$List$indexedMap,
-			F2(
-				function (i, _v3) {
-					return A3($author$project$Main$getNextPosition, nextPosition, direction, i);
-				}),
-			A2(
-				$elm$core$List$repeat,
-				$elm$core$String$length(word),
-				_List_Nil));
 		var letters = $elm$core$String$toList(word);
 		var grid = model.grid;
-		var grid_ = A3($author$project$Main$tryToPlaceChars, letters, grid, positions);
-		var _v1 = A2($elm$core$Debug$log, 'grids', grid_);
+		var grid_ = A4($author$project$Main$tryToPlaceChars, letters, grid, position, direction);
 		if (grid_.$ === 'Nothing') {
 			return model;
 		} else {
@@ -6344,6 +6322,12 @@ var $author$project$Main$tryToPlaceWord = F2(
 				model,
 				{
 					grid: g,
+					wordList: A2(
+						$elm$core$List$filter,
+						function (w) {
+							return !_Utils_eq(w, word);
+						},
+						model.wordList),
 					wordsToFind: A2($elm$core$List$cons, word, model.wordsToFind)
 				});
 		}
@@ -6365,9 +6349,9 @@ var $author$project$Main$update = F2(
 			case 'FillGridWithRandomChars_':
 				var randomWord = msg.a;
 				var grid_ = A2(
-					$author$project$WordGrid$fromList,
-					$elm$core$String$toList(randomWord),
-					$author$project$WordGrid$getSize(model.grid));
+					$author$project$WordGrid$fillEmpty,
+					model.grid,
+					$elm$core$String$toList(randomWord));
 				var _v3 = A2($elm$core$Debug$log, 'GetWordList', randomWord);
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -6420,9 +6404,7 @@ var $author$project$Main$update = F2(
 					var list = selectedWord.b;
 					var _v8 = A2($elm$core$Debug$log, 'New word choosen', word);
 					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{wordList: list}),
+						model,
 						A2(
 							$elm$random$Random$generate,
 							$author$project$Main$PlaceSelectedWord,

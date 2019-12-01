@@ -54,4 +54,4 @@ toInt dir =
     NE -> (1,-1)
 
 random: Generator Direction
-random = map fromInt (int 0 0)
+random = map fromInt (int 0 7)

@@ -8,6 +8,7 @@ module WordGrid exposing
   , getSize
   , getCell
   , setCell
+  , fillEmpty
   , map
   )
 
@@ -83,11 +84,30 @@ setCell grid (x, y) new =
       let
         cell = getCell grid (x, y)
         position = getRealPosition (x,y) grid
-        _ = Debug.log "----- ADDING " (position, new)
       in 
         case cell of
           Nothing -> Just (WordGrid grid.size (Array.set position new grid.data))
-          Just _ -> Nothing
+          Just c -> 
+            if c == letter
+            then Just grid
+            else Nothing
+
+fillEmpty: WordGrid -> (List Char) -> WordGrid
+fillEmpty grid chars = 
+  let
+    list = List.concat (toLists grid)
+    filled = List.map2
+      (\x y -> 
+        case x of
+        Nothing -> y
+        Just c -> c
+      )
+      list
+      chars
+    grid_ = fromList filled (getSize grid) 
+    _ = Debug.log "MEGA LIST" list
+  in
+  grid_
 
 
 

@@ -30,8 +30,6 @@ create n seed =
 
 -- DISPLAY
 
-
--- TODO MAYBE
 fromList: List Char -> Int -> WordGrid
 fromList list size_ = 
   WordGrid size_ (Array.fromList (List.take (size_*size_) (List.map (\e -> Just e) list)))
@@ -105,7 +103,6 @@ fillEmpty grid chars =
       list
       chars
     grid_ = fromList filled (getSize grid) 
-    _ = Debug.log "MEGA LIST" list
   in
   grid_
 

@@ -6175,9 +6175,18 @@ var $author$project$Main$fetchWordList = $elm$http$Http$get(
 		expect: A2($elm$http$Http$expectJson, $author$project$Main$StoreWordList, $author$project$Main$wordDecoder),
 		url: 'http://localhost:8000/wordlist.json'
 	});
+var $elm$core$Basics$round = _Basics_round;
 var $author$project$Main$init = function (flags) {
-	var test = A2($author$project$WordGrid$create, 10, $elm$core$Maybe$Nothing);
-	var model_ = {attempts: 100, grid: test, size: 10, wordList: _List_Nil, wordsToFind: _List_Nil};
+	var size = 10;
+	var fillRatio = 1;
+	var attempts = $elm$core$Basics$round((size * size) * fillRatio);
+	var model_ = {
+		attempts: attempts,
+		grid: A2($author$project$WordGrid$create, size, $elm$core$Maybe$Nothing),
+		size: size,
+		wordList: _List_Nil,
+		wordsToFind: _List_Nil
+	};
 	return _Utils_Tuple2(model_, $author$project$Main$fetchWordList);
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
@@ -6185,15 +6194,226 @@ var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $author$project$Main$subscriptions = function (model) {
 	return $elm$core$Platform$Sub$none;
 };
-var $author$project$Main$FillGridWithRandomChars_ = function (a) {
-	return {$: 'FillGridWithRandomChars_', a: a};
-};
 var $author$project$Main$PickRandomWord = {$: 'PickRandomWord'};
 var $author$project$Main$PickRandomWordResult = function (a) {
 	return {$: 'PickRandomWordResult', a: a};
 };
 var $author$project$Main$PlaceSelectedWord = function (a) {
 	return {$: 'PlaceSelectedWord', a: a};
+};
+var $author$project$Main$FillGridWithRandomChars_ = function (a) {
+	return {$: 'FillGridWithRandomChars_', a: a};
+};
+var $elm$random$Random$Generate = function (a) {
+	return {$: 'Generate', a: a};
+};
+var $elm$random$Random$Seed = F2(
+	function (a, b) {
+		return {$: 'Seed', a: a, b: b};
+	});
+var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var $elm$random$Random$next = function (_v0) {
+	var state0 = _v0.a;
+	var incr = _v0.b;
+	return A2($elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
+};
+var $elm$random$Random$initialSeed = function (x) {
+	var _v0 = $elm$random$Random$next(
+		A2($elm$random$Random$Seed, 0, 1013904223));
+	var state1 = _v0.a;
+	var incr = _v0.b;
+	var state2 = (state1 + x) >>> 0;
+	return $elm$random$Random$next(
+		A2($elm$random$Random$Seed, state2, incr));
+};
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$random$Random$init = A2(
+	$elm$core$Task$andThen,
+	function (time) {
+		return $elm$core$Task$succeed(
+			$elm$random$Random$initialSeed(
+				$elm$time$Time$posixToMillis(time)));
+	},
+	$elm$time$Time$now);
+var $elm$random$Random$step = F2(
+	function (_v0, seed) {
+		var generator = _v0.a;
+		return generator(seed);
+	});
+var $elm$random$Random$onEffects = F3(
+	function (router, commands, seed) {
+		if (!commands.b) {
+			return $elm$core$Task$succeed(seed);
+		} else {
+			var generator = commands.a.a;
+			var rest = commands.b;
+			var _v1 = A2($elm$random$Random$step, generator, seed);
+			var value = _v1.a;
+			var newSeed = _v1.b;
+			return A2(
+				$elm$core$Task$andThen,
+				function (_v2) {
+					return A3($elm$random$Random$onEffects, router, rest, newSeed);
+				},
+				A2($elm$core$Platform$sendToApp, router, value));
+		}
+	});
+var $elm$random$Random$onSelfMsg = F3(
+	function (_v0, _v1, seed) {
+		return $elm$core$Task$succeed(seed);
+	});
+var $elm$random$Random$Generator = function (a) {
+	return {$: 'Generator', a: a};
+};
+var $elm$random$Random$map = F2(
+	function (func, _v0) {
+		var genA = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v1 = genA(seed0);
+				var a = _v1.a;
+				var seed1 = _v1.b;
+				return _Utils_Tuple2(
+					func(a),
+					seed1);
+			});
+	});
+var $elm$random$Random$cmdMap = F2(
+	function (func, _v0) {
+		var generator = _v0.a;
+		return $elm$random$Random$Generate(
+			A2($elm$random$Random$map, func, generator));
+	});
+_Platform_effectManagers['Random'] = _Platform_createManager($elm$random$Random$init, $elm$random$Random$onEffects, $elm$random$Random$onSelfMsg, $elm$random$Random$cmdMap);
+var $elm$random$Random$command = _Platform_leaf('Random');
+var $elm$random$Random$generate = F2(
+	function (tagger, generator) {
+		return $elm$random$Random$command(
+			$elm$random$Random$Generate(
+				A2($elm$random$Random$map, tagger, generator)));
+	});
+var $author$project$WordGrid$getSize = function (grid) {
+	return grid.size;
+};
+var $elm$core$Char$fromCode = _Char_fromCode;
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$core$Bitwise$xor = _Bitwise_xor;
+var $elm$random$Random$peel = function (_v0) {
+	var state = _v0.a;
+	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
+	return ((word >>> 22) ^ word) >>> 0;
+};
+var $elm$random$Random$int = F2(
+	function (a, b) {
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v0 = (_Utils_cmp(a, b) < 0) ? _Utils_Tuple2(a, b) : _Utils_Tuple2(b, a);
+				var lo = _v0.a;
+				var hi = _v0.b;
+				var range = (hi - lo) + 1;
+				if (!((range - 1) & range)) {
+					return _Utils_Tuple2(
+						(((range - 1) & $elm$random$Random$peel(seed0)) >>> 0) + lo,
+						$elm$random$Random$next(seed0));
+				} else {
+					var threshhold = (((-range) >>> 0) % range) >>> 0;
+					var accountForBias = function (seed) {
+						accountForBias:
+						while (true) {
+							var x = $elm$random$Random$peel(seed);
+							var seedN = $elm$random$Random$next(seed);
+							if (_Utils_cmp(x, threshhold) < 0) {
+								var $temp$seed = seedN;
+								seed = $temp$seed;
+								continue accountForBias;
+							} else {
+								return _Utils_Tuple2((x % range) + lo, seedN);
+							}
+						}
+					};
+					return accountForBias(seed0);
+				}
+			});
+	});
+var $elm_community$random_extra$Random$Char$char = F2(
+	function (start, end) {
+		return A2(
+			$elm$random$Random$map,
+			$elm$core$Char$fromCode,
+			A2($elm$random$Random$int, start, end));
+	});
+var $elm_community$random_extra$Random$Char$lowerCaseLatin = A2($elm_community$random_extra$Random$Char$char, 97, 122);
+var $elm$core$String$fromList = _String_fromList;
+var $elm$random$Random$listHelp = F4(
+	function (revList, n, gen, seed) {
+		listHelp:
+		while (true) {
+			if (n < 1) {
+				return _Utils_Tuple2(revList, seed);
+			} else {
+				var _v0 = gen(seed);
+				var value = _v0.a;
+				var newSeed = _v0.b;
+				var $temp$revList = A2($elm$core$List$cons, value, revList),
+					$temp$n = n - 1,
+					$temp$gen = gen,
+					$temp$seed = newSeed;
+				revList = $temp$revList;
+				n = $temp$n;
+				gen = $temp$gen;
+				seed = $temp$seed;
+				continue listHelp;
+			}
+		}
+	});
+var $elm$random$Random$list = F2(
+	function (n, _v0) {
+		var gen = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed) {
+				return A4($elm$random$Random$listHelp, _List_Nil, n, gen, seed);
+			});
+	});
+var $elm_community$random_extra$Random$String$string = F2(
+	function (stringLength, charGenerator) {
+		return A2(
+			$elm$random$Random$map,
+			$elm$core$String$fromList,
+			A2($elm$random$Random$list, stringLength, charGenerator));
+	});
+var $author$project$Main$randomString = function (lenght) {
+	return A2($elm_community$random_extra$Random$String$string, lenght, $elm_community$random_extra$Random$Char$lowerCaseLatin);
+};
+var $author$project$Main$completeGrid = function (model) {
+	return function (x) {
+		return A2(
+			$elm$random$Random$generate,
+			$author$project$Main$FillGridWithRandomChars_,
+			$author$project$Main$randomString(x * x));
+	}(
+		$author$project$WordGrid$getSize(model.grid));
 };
 var $elm$core$List$append = F2(
 	function (xs, ys) {
@@ -6383,10 +6603,6 @@ var $author$project$WordGrid$fromList = F2(
 						},
 						list))));
 	});
-var $author$project$WordGrid$getSize = function (grid) {
-	return grid.size;
-};
-var $elm$core$Debug$log = _Debug_log;
 var $elm$core$Elm$JsArray$appendN = _JsArray_appendN;
 var $elm$core$Elm$JsArray$slice = _JsArray_slice;
 var $elm$core$Array$appendHelpBuilder = F2(
@@ -6433,7 +6649,6 @@ var $elm$core$List$drop = F2(
 	});
 var $elm$core$Basics$ge = _Utils_ge;
 var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
-var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
 var $elm$core$Array$tailIndex = function (len) {
 	return (len >>> 5) << 5;
 };
@@ -6500,7 +6715,6 @@ var $elm$core$Array$sliceLeft = F2(
 			}
 		}
 	});
-var $elm$core$Bitwise$and = _Bitwise_and;
 var $elm$core$Array$bitMask = 4294967295 >>> (32 - $elm$core$Array$shiftStep);
 var $elm$core$Elm$JsArray$unsafeGet = _JsArray_unsafeGet;
 var $elm$core$Array$fetchNewTail = F4(
@@ -6658,7 +6872,6 @@ var $author$project$WordGrid$fillEmpty = F2(
 			$author$project$WordGrid$fromList,
 			filled,
 			$author$project$WordGrid$getSize(grid));
-		var _v0 = A2($elm$core$Debug$log, 'MEGA LIST', list);
 		return grid_;
 	});
 var $elm$core$List$filter = F2(
@@ -6671,112 +6884,6 @@ var $elm$core$List$filter = F2(
 				}),
 			_List_Nil,
 			list);
-	});
-var $elm$random$Random$Generate = function (a) {
-	return {$: 'Generate', a: a};
-};
-var $elm$random$Random$Seed = F2(
-	function (a, b) {
-		return {$: 'Seed', a: a, b: b};
-	});
-var $elm$random$Random$next = function (_v0) {
-	var state0 = _v0.a;
-	var incr = _v0.b;
-	return A2($elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
-};
-var $elm$random$Random$initialSeed = function (x) {
-	var _v0 = $elm$random$Random$next(
-		A2($elm$random$Random$Seed, 0, 1013904223));
-	var state1 = _v0.a;
-	var incr = _v0.b;
-	var state2 = (state1 + x) >>> 0;
-	return $elm$random$Random$next(
-		A2($elm$random$Random$Seed, state2, incr));
-};
-var $elm$time$Time$Name = function (a) {
-	return {$: 'Name', a: a};
-};
-var $elm$time$Time$Offset = function (a) {
-	return {$: 'Offset', a: a};
-};
-var $elm$time$Time$Zone = F2(
-	function (a, b) {
-		return {$: 'Zone', a: a, b: b};
-	});
-var $elm$time$Time$customZone = $elm$time$Time$Zone;
-var $elm$time$Time$Posix = function (a) {
-	return {$: 'Posix', a: a};
-};
-var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
-var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
-var $elm$time$Time$posixToMillis = function (_v0) {
-	var millis = _v0.a;
-	return millis;
-};
-var $elm$random$Random$init = A2(
-	$elm$core$Task$andThen,
-	function (time) {
-		return $elm$core$Task$succeed(
-			$elm$random$Random$initialSeed(
-				$elm$time$Time$posixToMillis(time)));
-	},
-	$elm$time$Time$now);
-var $elm$random$Random$step = F2(
-	function (_v0, seed) {
-		var generator = _v0.a;
-		return generator(seed);
-	});
-var $elm$random$Random$onEffects = F3(
-	function (router, commands, seed) {
-		if (!commands.b) {
-			return $elm$core$Task$succeed(seed);
-		} else {
-			var generator = commands.a.a;
-			var rest = commands.b;
-			var _v1 = A2($elm$random$Random$step, generator, seed);
-			var value = _v1.a;
-			var newSeed = _v1.b;
-			return A2(
-				$elm$core$Task$andThen,
-				function (_v2) {
-					return A3($elm$random$Random$onEffects, router, rest, newSeed);
-				},
-				A2($elm$core$Platform$sendToApp, router, value));
-		}
-	});
-var $elm$random$Random$onSelfMsg = F3(
-	function (_v0, _v1, seed) {
-		return $elm$core$Task$succeed(seed);
-	});
-var $elm$random$Random$Generator = function (a) {
-	return {$: 'Generator', a: a};
-};
-var $elm$random$Random$map = F2(
-	function (func, _v0) {
-		var genA = _v0.a;
-		return $elm$random$Random$Generator(
-			function (seed0) {
-				var _v1 = genA(seed0);
-				var a = _v1.a;
-				var seed1 = _v1.b;
-				return _Utils_Tuple2(
-					func(a),
-					seed1);
-			});
-	});
-var $elm$random$Random$cmdMap = F2(
-	function (func, _v0) {
-		var generator = _v0.a;
-		return $elm$random$Random$Generate(
-			A2($elm$random$Random$map, func, generator));
-	});
-_Platform_effectManagers['Random'] = _Platform_createManager($elm$random$Random$init, $elm$random$Random$onEffects, $elm$random$Random$onSelfMsg, $elm$random$Random$cmdMap);
-var $elm$random$Random$command = _Platform_leaf('Random');
-var $elm$random$Random$generate = F2(
-	function (tagger, generator) {
-		return $elm$random$Random$command(
-			$elm$random$Random$Generate(
-				A2($elm$random$Random$map, tagger, generator)));
 	});
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
@@ -6799,47 +6906,6 @@ var $elm_community$random_extra$Random$List$get = F2(
 	function (index, list) {
 		return $elm$core$List$head(
 			A2($elm$core$List$drop, index, list));
-	});
-var $elm$core$Basics$negate = function (n) {
-	return -n;
-};
-var $elm$core$Bitwise$xor = _Bitwise_xor;
-var $elm$random$Random$peel = function (_v0) {
-	var state = _v0.a;
-	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
-	return ((word >>> 22) ^ word) >>> 0;
-};
-var $elm$random$Random$int = F2(
-	function (a, b) {
-		return $elm$random$Random$Generator(
-			function (seed0) {
-				var _v0 = (_Utils_cmp(a, b) < 0) ? _Utils_Tuple2(a, b) : _Utils_Tuple2(b, a);
-				var lo = _v0.a;
-				var hi = _v0.b;
-				var range = (hi - lo) + 1;
-				if (!((range - 1) & range)) {
-					return _Utils_Tuple2(
-						(((range - 1) & $elm$random$Random$peel(seed0)) >>> 0) + lo,
-						$elm$random$Random$next(seed0));
-				} else {
-					var threshhold = (((-range) >>> 0) % range) >>> 0;
-					var accountForBias = function (seed) {
-						accountForBias:
-						while (true) {
-							var x = $elm$random$Random$peel(seed);
-							var seedN = $elm$random$Random$next(seed);
-							if (_Utils_cmp(x, threshhold) < 0) {
-								var $temp$seed = seedN;
-								seed = $temp$seed;
-								continue accountForBias;
-							} else {
-								return _Utils_Tuple2((x % range) + lo, seedN);
-							}
-						}
-					};
-					return accountForBias(seed0);
-				}
-			});
 	});
 var $elm$core$List$isEmpty = function (xs) {
 	if (!xs.b) {
@@ -6962,56 +7028,6 @@ var $author$project$Main$randomStartingValues = F2(
 				_Utils_Tuple2(size - 1, size - 1)),
 			$author$project$Directions$random);
 	});
-var $elm$core$Char$fromCode = _Char_fromCode;
-var $elm_community$random_extra$Random$Char$char = F2(
-	function (start, end) {
-		return A2(
-			$elm$random$Random$map,
-			$elm$core$Char$fromCode,
-			A2($elm$random$Random$int, start, end));
-	});
-var $elm_community$random_extra$Random$Char$lowerCaseLatin = A2($elm_community$random_extra$Random$Char$char, 97, 122);
-var $elm$core$String$fromList = _String_fromList;
-var $elm$random$Random$listHelp = F4(
-	function (revList, n, gen, seed) {
-		listHelp:
-		while (true) {
-			if (n < 1) {
-				return _Utils_Tuple2(revList, seed);
-			} else {
-				var _v0 = gen(seed);
-				var value = _v0.a;
-				var newSeed = _v0.b;
-				var $temp$revList = A2($elm$core$List$cons, value, revList),
-					$temp$n = n - 1,
-					$temp$gen = gen,
-					$temp$seed = newSeed;
-				revList = $temp$revList;
-				n = $temp$n;
-				gen = $temp$gen;
-				seed = $temp$seed;
-				continue listHelp;
-			}
-		}
-	});
-var $elm$random$Random$list = F2(
-	function (n, _v0) {
-		var gen = _v0.a;
-		return $elm$random$Random$Generator(
-			function (seed) {
-				return A4($elm$random$Random$listHelp, _List_Nil, n, gen, seed);
-			});
-	});
-var $elm_community$random_extra$Random$String$string = F2(
-	function (stringLength, charGenerator) {
-		return A2(
-			$elm$random$Random$map,
-			$elm$core$String$fromList,
-			A2($elm$random$Random$list, stringLength, charGenerator));
-	});
-var $author$project$Main$randomString = function (lenght) {
-	return A2($elm_community$random_extra$Random$String$string, lenght, $elm_community$random_extra$Random$Char$lowerCaseLatin);
-};
 var $elm$core$List$repeatHelp = F3(
 	function (result, n, value) {
 		repeatHelp:
@@ -7369,12 +7385,23 @@ var $author$project$Main$tryToPlaceWord = F2(
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
+			case 'Reset':
+				var size = msg.a;
+				var attempts = msg.b;
+				var model_ = {
+					attempts: attempts,
+					grid: A2($author$project$WordGrid$create, size, $elm$core$Maybe$Nothing),
+					size: size,
+					wordList: _List_Nil,
+					wordsToFind: _List_Nil
+				};
+				return _Utils_Tuple2(model_, $author$project$Main$fetchWordList);
 			case 'GenerateGame':
 				return A3(
 					$ccapndave$elm_update_extra$Update$Extra$sequence,
 					$author$project$Main$update,
 					_Utils_ap(
-						A2($elm$core$List$repeat, 100, $author$project$Main$PickRandomWord),
+						A2($elm$core$List$repeat, model.attempts, $author$project$Main$PickRandomWord),
 						_List_fromArray(
 							[$author$project$Main$PickRandomWord])),
 					_Utils_Tuple2(model, $elm$core$Platform$Cmd$none));
@@ -7384,22 +7411,11 @@ var $author$project$Main$update = F2(
 					$author$project$WordGrid$fillEmpty,
 					model.grid,
 					$elm$core$String$toList(randomWord));
-				var _v1 = A2($elm$core$Debug$log, 'GetWordList', randomWord);
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{grid: grid_}),
 					$elm$core$Platform$Cmd$none);
-			case 'FillGridWithRandomChars':
-				return _Utils_Tuple2(
-					model,
-					function (x) {
-						return A2(
-							$elm$random$Random$generate,
-							$author$project$Main$FillGridWithRandomChars_,
-							$author$project$Main$randomString(x * x));
-					}(
-						$author$project$WordGrid$getSize(model.grid)));
 			case 'PickRandomWord':
 				var list_ = A2(
 					$elm$core$List$filter,
@@ -7419,30 +7435,41 @@ var $author$project$Main$update = F2(
 						$author$project$Main$randomItemFromList(list_)));
 			case 'PickRandomWordResult':
 				var selectedWord = msg.a;
-				if (selectedWord.a.$ === 'Nothing') {
-					var _v3 = selectedWord.a;
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-				} else {
-					var word = selectedWord.a.a;
-					var list = selectedWord.b;
+				var word = selectedWord.a;
+				var _continue = model.attempts > 0;
+				var _v1 = _Utils_Tuple2(_continue, word);
+				if (!_v1.a) {
 					return _Utils_Tuple2(
 						model,
-						A2(
-							$elm$random$Random$generate,
-							$author$project$Main$PlaceSelectedWord,
-							A2($author$project$Main$randomStartingValues, model.size, word)));
+						$author$project$Main$completeGrid(model));
+				} else {
+					if (_v1.b.$ === 'Nothing') {
+						var _v2 = _v1.b;
+						return _Utils_Tuple2(
+							model,
+							$author$project$Main$completeGrid(model));
+					} else {
+						var w = _v1.b.a;
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{attempts: model.attempts - 1}),
+							A2(
+								$elm$random$Random$generate,
+								$author$project$Main$PlaceSelectedWord,
+								A2($author$project$Main$randomStartingValues, model.size, w)));
+					}
 				}
 			case 'PlaceSelectedWord':
-				var _v4 = msg.a;
-				var word = _v4.a;
-				var position = _v4.b;
-				var direction = _v4.c;
-				return _Utils_Tuple2(
-					A2(
-						$author$project$Main$tryToPlaceWord,
-						model,
-						_Utils_Tuple3(word, position, direction)),
-					$elm$core$Platform$Cmd$none);
+				var _v3 = msg.a;
+				var word = _v3.a;
+				var position = _v3.b;
+				var direction = _v3.c;
+				var model_ = A2(
+					$author$project$Main$tryToPlaceWord,
+					model,
+					_Utils_Tuple3(word, position, direction));
+				return _Utils_Tuple2(model_, $elm$core$Platform$Cmd$none);
 			default:
 				var result = msg.a;
 				if (result.$ === 'Ok') {

@@ -59,20 +59,16 @@ type alias Job =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
   let
-    test = WordGrid.create 10 Nothing
+    size = 10
+    fillRatio = 1 -- Bigger the number more words are placed on the grid, more time to generate it
+    attempts = round(size * size * fillRatio)
     model_ = 
-      { grid = test
-      , size = 10
-      , attempts= 100
-      , wordList= []
+      { grid = WordGrid.create size Nothing
+      , size = size
+      , attempts = attempts
+      , wordList = []
       , wordsToFind = []
       }
-    
-    --_ = Debug.log "WordGrid getRow" (WordGrid.getRow test 0)
-    --_ = Debug.log "WordGrid toList" (WordGrid.toList test)
-    --_ = Debug.log "WordGrid size" (WordGrid.getSize test)
-    --_ = Debug.log "WordGrid toLists" (WordGrid.toLists test)
-    --_ = Debug.log "WordGrid" (WordGrid.getRow test 1)
   in
     (model_, fetchWordList)
 
@@ -88,8 +84,8 @@ subscriptions model =
 
 
 type Msg
-  = GenerateGame
-  | FillGridWithRandomChars 
+  = Reset Int Int 
+  | GenerateGame
   | FillGridWithRandomChars_ String
   | PickRandomWord
   | PickRandomWordResult (Maybe String, List String)
@@ -102,29 +98,29 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
 
+    Reset size attempts ->
+      let 
+        model_ =
+          { grid = WordGrid.create size Nothing
+          , size = size
+          , attempts = attempts
+          , wordList = []
+          , wordsToFind = []
+          }
+      in 
+        (model_, fetchWordList)
+
     GenerateGame ->
       (model, Cmd.none)
-        |> Update.Extra.sequence update ((List.repeat 100 PickRandomWord ++ [PickRandomWord]))
-        --|> Update.Extra.andThen update FillGridWithRandomChars
-          --|> Update.Extras.addCmd (Task.succeed PickRandomWord |> Task.perform (\a -> a))
+        |> Update.Extra.sequence update ((List.repeat model.attempts PickRandomWord ++ [PickRandomWord]))
+        --|> Update.Extra.updateModel (\m -> { m |  grid = createEmptyGrid model.size, wordList = []})
 
     FillGridWithRandomChars_ randomWord->
       let 
-        _ = Debug.log "GetWordList" randomWord
-        --grid_ = WordGrid.fromList (String.toList randomWord) (WordGrid.getSize model.grid)
         grid_ = WordGrid.fillEmpty model.grid (String.toList randomWord)
       in
       ({model | grid = grid_}, Cmd.none)
-
-    FillGridWithRandomChars ->
-      ( model,
-        model.grid
-          |> WordGrid.getSize
-          |> \x -> x * x
-          |> randomString
-          |> Random.generate FillGridWithRandomChars_ )
          
-
     PickRandomWord -> 
       let 
         list_ = List.filter (\s -> (String.length s) <= model.size) model.wordList
@@ -132,16 +128,27 @@ update msg model =
       ({ model | wordList = list_ }, Random.generate PickRandomWordResult (randomItemFromList list_))
 
     PickRandomWordResult selectedWord->
-      case selectedWord of
-        (Nothing, _) -> 
-          -- No more words
-          (model , Cmd.none)
-        
-        (Just word, list) ->
-          ( model , Random.generate PlaceSelectedWord (randomStartingValues model.size word))
+      let 
+        continue = model.attempts > 0
+        word = Tuple.first selectedWord
+      in 
+        case (continue, word) of
+          (False, _) -> 
+            -- Enough attempts 
+            (model , completeGrid model)
 
-    PlaceSelectedWord (word, position, direction) -> 
-      (tryToPlaceWord model (word,position,direction), Cmd.none)
+          (True, Nothing) ->
+            -- No more words
+            (model , completeGrid model)
+
+          (True, Just w) ->
+            ( {model | attempts = model.attempts-1} , Random.generate PlaceSelectedWord (randomStartingValues model.size w))
+
+    PlaceSelectedWord (word, position, direction) ->
+      let
+        model_ = tryToPlaceWord model (word,position,direction)
+      in
+      (model_ , Cmd.none)
 
     StoreWordList result ->
       case result of
@@ -201,7 +208,6 @@ view model =
     , button [ onClick PickRandomWord ] [ text "Add single word" ]
     , div [] [ showGrid (WordGrid.toLists model.grid)]
     , ul [] (List.map (\w ->  li [] [text w]) model.wordsToFind)
-    -- , div [] [ createRows model.counter ]
     ]
 
 cell : Html Msg
@@ -233,15 +239,6 @@ showGrid list =
     [ Attribute.class "grid"
     ]
     (List.map (\row -> showRow row) list)
-  -- case list of 
-  --   [] -> 
-  --     div
-  --     []
-  --     [text ""]
-  --   x :: [] ->
-  --     showRow x
-  --   x :: xs -> 
-  --     showRow x showGrid 
 
 showRow: List (Maybe Char) -> Html Msg
 showRow row = 
@@ -256,13 +253,11 @@ showChar posibleChar =
     Just a -> String.fromChar a
     Nothing -> " "
 
-generateGame: Model -> WordGrid
-generateGame model =
-  let 
-    _ = Debug.log "GENERATING" 1
-    
-  in
-    model.grid
+
+-- 
+createEmptyGrid: Int -> WordGrid
+createEmptyGrid size =
+  WordGrid.create size Nothing
 
 placeWords: Int -> List (Task.Task x Msg)
 placeWords n = 
@@ -274,7 +269,6 @@ tryToPlaceWord model (word, position, direction) =
     grid = model.grid
     letters = String.toList word
     grid_ = tryPossibleDirections letters grid position direction 7
-
   in
   case grid_ of
     Nothing -> 
@@ -282,11 +276,10 @@ tryToPlaceWord model (word, position, direction) =
     Just g -> (
       {model |
        grid = g
-       ,  wordsToFind = word :: model.wordsToFind
+       , wordsToFind = word :: model.wordsToFind
        , wordList = List.filter (\w -> w /= word) model.wordList}
       )
   
-  --(model)
 
 tryPossibleDirections: (List Char) -> WordGrid -> (Int, Int) -> Direction -> Int -> Maybe WordGrid
 tryPossibleDirections letters grid position direction n = 
@@ -348,8 +341,12 @@ positionOutOfBounds: (Int, Int) -> WordGrid -> Bool
 positionOutOfBounds (x, y) grid=
   let
     size = WordGrid.getSize grid
-    -- _ = Debug.log "               x" x
-    -- _ = Debug.log "               y" y
-    -- _ = Debug.log "               size" size
   in
   (x >= size) || (y >= size) || (x < 0) || (y < 0)
+
+completeGrid: Model -> Cmd Msg
+completeGrid model = model.grid
+          |> WordGrid.getSize
+          |> \x -> x * x
+          |> randomString
+          |> Random.generate FillGridWithRandomChars_

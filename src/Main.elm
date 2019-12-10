@@ -1,12 +1,5 @@
 module Main exposing (..)
 
--- Press buttons to increment and decrement a counter.
---
--- Read how it works:
---   https://guide.elm-lang.org/architecture/buttons.html
---
-
-
 import Browser
 import Random
 import Random.String
@@ -14,19 +7,23 @@ import Random.Char
 import Random.List
 import Maybe.Extra
 
-
 import Html exposing (Html, button, div, text, ul, li)
 import Html.Attributes as Attribute
 import Html.Events exposing (onClick)
 
+import Task
 
+import Update.Extra
+
+import Http
+import Json.Decode
+
+
+-- Custom types
 import WordGrid exposing (WordGrid)
 import Directions exposing (Direction)
 
-
-
 -- MAIN
-
 main =
   Browser.element
     { init = init
@@ -44,7 +41,7 @@ main =
 type alias Model = 
   { grid: WordGrid
   , size: Int
-  , counter: Int
+  , attempts: Int
   , wordList: List String
   , wordsToFind: List String
   }
@@ -66,19 +63,18 @@ init flags =
     model_ = 
       { grid = test
       , size = 10
-      , counter= 10
-      , wordList= getWordList
+      , attempts= 100
+      , wordList= []
       , wordsToFind = []
       }
     
-    _ = Debug.log "WordGrid getRow" (WordGrid.getRow test 0)
-    _ = Debug.log "WordGrid toList" (WordGrid.toList test)
-    _ = Debug.log "WordGrid size" (WordGrid.getSize test)
-    _ = Debug.log "WordGrid toLists" (WordGrid.toLists test)
-    _ = Debug.log "WordGrid" (WordGrid.getRow test 1)
+    --_ = Debug.log "WordGrid getRow" (WordGrid.getRow test 0)
+    --_ = Debug.log "WordGrid toList" (WordGrid.toList test)
+    --_ = Debug.log "WordGrid size" (WordGrid.getSize test)
+    --_ = Debug.log "WordGrid toLists" (WordGrid.toLists test)
+    --_ = Debug.log "WordGrid" (WordGrid.getRow test 1)
   in
-    (model_, Cmd.none)
-  
+    (model_, fetchWordList)
 
 
 -- SUBSCRIPTIONS
@@ -92,31 +88,25 @@ subscriptions model =
 
 
 type Msg
-  = NewValue Int
-  | GetWordList
-  | GenerateGame
+  = GenerateGame
   | FillGridWithRandomChars 
   | FillGridWithRandomChars_ String
   | PickRandomWord
   | PickRandomWordResult (Maybe String, List String)
   | PlaceSelectedWord Job
+  | StoreWordList (Result Http.Error (List String))
 
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
-    NewValue number -> 
-      let 
-        _ = Debug.log "Number" number
-      in
-        (model , Cmd.none)
 
-    GetWordList ->
-      let 
-        _ = Debug.log "GetWordList" 1
-      in
-        ({ model | wordList=  getWordList}, Cmd.none)
+    GenerateGame ->
+      (model, Cmd.none)
+        |> Update.Extra.sequence update ((List.repeat 100 PickRandomWord ++ [PickRandomWord]))
+        --|> Update.Extra.andThen update FillGridWithRandomChars
+          --|> Update.Extras.addCmd (Task.succeed PickRandomWord |> Task.perform (\a -> a))
 
     FillGridWithRandomChars_ randomWord->
       let 
@@ -134,42 +124,32 @@ update msg model =
           |> randomString
           |> Random.generate FillGridWithRandomChars_ )
          
-    GenerateGame ->
-      let
-        grid_ = generateGame model
-      in
-      ({ model | grid = grid_ }, Cmd.none)
 
     PickRandomWord -> 
       let 
         list_ = List.filter (\s -> (String.length s) <= model.size) model.wordList
-        _ = Debug.log "new word list" list_
       in
       ({ model | wordList = list_ }, Random.generate PickRandomWordResult (randomItemFromList list_))
 
     PickRandomWordResult selectedWord->
       case selectedWord of
         (Nothing, _) -> 
-          let 
-            _ = Debug.log "No more words" 1
-          in
+          -- No more words
           (model , Cmd.none)
         
         (Just word, list) ->
-          let 
-            _ = Debug.log "New word choosen" word
-          in
-          -- update (PlaceSelectedWord word (0,0) (Directions.fromInt 0)) { model | wordList = list}
           ( model , Random.generate PlaceSelectedWord (randomStartingValues model.size word))
 
     PlaceSelectedWord (word, position, direction) -> 
-      let 
-        _ = Debug.log "Placing " word
-        _ = Debug.log "Pos " position
-        _ = Debug.log "Dir " direction
-      in
-        (tryToPlaceWord model (word,position,direction), Cmd.none)
+      (tryToPlaceWord model (word,position,direction), Cmd.none)
 
+    StoreWordList result ->
+      case result of
+        Ok list ->
+          ({model | wordList = list}, Cmd.none)
+
+        Err _ ->
+          (model, Cmd.none)
 
 -- Random UTILS
 
@@ -198,14 +178,27 @@ randomStartingValues size w =
     (Directions.random)
 
 
+-- HTTP
+
+fetchWordList : Cmd Msg
+fetchWordList =
+  Http.get
+    { url = "http://localhost:8000/wordlist.json"
+    , expect = Http.expectJson StoreWordList wordDecoder
+    }
+
+wordDecoder: Json.Decode.Decoder (List String)
+wordDecoder =
+  Json.Decode.list Json.Decode.string
+
 -- VIEW
 
 
 view : Model -> Html Msg
 view model =
   div []
-    [ button [ onClick FillGridWithRandomChars ] [ text "Generate" ]
-    , button [ onClick PickRandomWord ] [ text "Filter" ]
+    [ button [ onClick GenerateGame ] [ text "Generate" ]
+    , button [ onClick PickRandomWord ] [ text "Add single word" ]
     , div [] [ showGrid (WordGrid.toLists model.grid)]
     , ul [] (List.map (\w ->  li [] [text w]) model.wordsToFind)
     -- , div [] [ createRows model.counter ]
@@ -267,309 +260,25 @@ generateGame: Model -> WordGrid
 generateGame model =
   let 
     _ = Debug.log "GENERATING" 1
+    
   in
     model.grid
 
-getWordList: List String
-getWordList = 
-  ["ability"
-  ,"able"
-  ,"about"
-  ,"above"
-  ,"abroad"
-  ,"absence"
-  ,"absent"
-  ,"absolute"
-  ,"accept"
-  ,"accident"
-  ,"accord"
-  ,"account"
-  ,"accuse"
-  ,"accustom"
-  ,"ache"
-  ,"across"
-  ,"act"
-  ,"action"
-  ,"active"
-  ,"actor"
-  ,"actress"
-  ,"actual"
-  ,"add"
-  ,"address"
-  ,"admire"
-  ,"admission"
-  ,"admit"
-  ,"adopt"
-  ,"adoption"
-  ,"advance"
-  ,"advantage"
-  ,"adventure"
-  ,"advertise"
-  ,"advice"
-  ,"advise"
-  ,"affair"
-  ,"afford"
-  ,"afraid"
-  ,"after"
-  ,"afternoon"
-  ,"again"
-  ,"against"
-  ,"age"
-  ,"agency"
-  ,"agent"
-  ,"ago"
-  ,"agree"
-  ,"agriculture"
-  ,"ahead"
-  ,"aim"
-  ,"air"
-  ,"airplane"
-  ,"alike"
-  ,"alive"
-  ,"all"
-  ,"allow"
-  ,"allowance"
-  ,"almost"
-  ,"alone"
-  ,"along"
-  ,"aloud"
-  ,"already"
-  ,"also"
-  ,"although"
-  ,"altogether"
-  ,"always"
-  ,"ambition"
-  ,"ambitious"
-  ,"among"
-  ,"amongst"
-  ,"amount"
-  ,"amuse"
-  ,"ancient"
-  ,"and"
-  ,"anger"
-  ,"angle"
-  ,"angry"
-  ,"animal"
-  ,"annoy"
-  ,"annoyance"
-  ,"another"
-  ,"answer"
-  ,"anxiety"
-  ,"anxious"
-  ,"any"
-  ,"anybody"
-  ,"anyhow"
-  ,"anyone"
-  ,"anything"
-  ,"anyway"
-  ,"anywhere"
-  ,"apart"
-  ,"apology"
-  ,"appear"
-  ,"appearance"
-  ,"applaud"
-  ,"applause"
-  ,"apple"
-  ,"application"
-  ,"apply"
-  ,"appoint"
-  ,"approve"
-  ,"arch"
-  ,"argue"
-  ,"arise"
-  ,"arm"
-  ,"army"
-  ,"around"
-  ,"arrange"
-  ,"arrest"
-  ,"arrive"
-  ,"arrow"
-  ,"art"
-  ,"article"
-  ,"artificial"
-  ,"as"
-  ,"ash"
-  ,"ashamed"
-  ,"aside"
-  ,"ask"
-  ,"asleep"
-  ,"association"
-  ,"astonish"
-  ,"at"
-  ,"attack"
-  ,"attempt"
-  ,"attend"
-  ,"attention"
-  ,"attentive"
-  ,"attract"
-  ,"attraction"
-  ,"attractive"
-  ,"audience"
-  ,"aunt"
-  ,"autumn"
-  ,"avenue"
-  ,"average"
-  ,"avoid"
-  ,"avoidance"
-  ,"awake"
-  ,"away"
-  ,"awkward"
-  ,"axe"
-  ,"baby"
-  ,"back"
-  ,"backward"
-  ,"bad"
-  ,"bag"
-  ,"baggage"
-  ,"bake"
-  ,"balance"
-  ,"ball"
-  ,"band"
-  ,"bank"
-  ,"bar"
-  ,"barber"
-  ,"bare"
-  ,"bargain"
-  ,"barrel"
-  ,"base"
-  ,"basic"
-  ,"basin"
-  ,"basis"
-  ,"basket"
-  ,"bath"
-  ,"bathe"
-  ,"battery"
-  ,"battle"
-  ,"bay"
-  ,"be"
-  ,"beak"
-  ,"beam"
-  ,"bean"
-  ,"bear"
-  ,"beard"
-  ,"beast"
-  ,"beat"
-  ,"beauty"
-  ,"because"
-  ,"become"
-  ,"bed"
-  ,"bedroom"
-  ,"before"
-  ,"beg"
-  ,"begin"
-  ,"behave"
-  ,"behavior"
-  ,"behind"
-  ,"being"
-  ,"belief"
-  ,"believe"
-  ,"bell"
-  ,"belong"
-  ,"below"
-  ,"belt"
-  ,"bend"
-  ,"beneath"
-  ,"berry"
-  ,"beside"
-  ,"besides"
-  ,"best"
-  ,"better"
-  ,"between"
-  ,"beyond"
-  ,"bicycle"
-  ,"big"
-  ,"bill"
-  ,"bind"
-  ,"bird"
-  ,"birth"
-  ,"bit"
-  ,"bite"
-  ,"bitter"
-  ,"black"
-  ,"blade"
-  ,"blame"
-  ,"bleed"
-  ,"bless"
-  ,"blind"
-  ,"block"
-  ,"blood"
-  ,"blow"
-  ,"blue"
-  ,"board"
-  ,"boast"
-  ,"boat"
-  ,"body"
-  ,"boil"
-  ,"bold"
-  ,"bone"
-  ,"book"
-  ,"border"
-  ,"borrow"
-  ,"both"
-  ,"bottle"
-  ,"bottom"
-  ,"bound"
-  ,"boundary"
-  ,"bow"
-  ,"bowl"
-  ,"box"
-  ,"boy"
-  ,"brain"
-  ,"branch"
-  ,"brass"
-  ,"brave"
-  ,"bravery"
-  ,"bread"
-  ,"breadth"
-  ,"break"
-  ,"breakfast"
-  ,"breath"
-  ,"breathe"
-  ,"bribe"
-  ,"bribery"
-  ,"brick"
-  ,"bridge"
-  ,"bright"
-  ,"brighten"
-  ,"bring"
-  ,"broad"
-  ,"broadcast"
-  ,"brother"
-  ,"brown"
-  ,"brush"
-  ,"bucket"
-  ,"build"
-  ,"bunch"
-  ,"bundle"
-  ,"burn"
-  ,"burst"
-  ,"bury"
-  ,"bus"
-  ,"bush"
-  ,"business"
-  ,"businesslike"
-  ,"businessman"
-  ,"busy"
-  ,"but"
-  ,"butter"
-  ,"button"
-  ,"buy"
-  ,"by"
-  ]
-
+placeWords: Int -> List (Task.Task x Msg)
+placeWords n = 
+  List.repeat n (Task.succeed PickRandomWord)
 
 tryToPlaceWord: Model -> Job -> Model
 tryToPlaceWord model (word, position, direction) = 
   let
     grid = model.grid
     letters = String.toList word
-    nextPosition = position 
-
-    grid_ = tryToPlaceChars letters grid position direction
+    grid_ = tryPossibleDirections letters grid position direction 7
 
   in
   case grid_ of
-    Nothing -> model
+    Nothing -> 
+      model
     Just g -> (
       {model |
        grid = g
@@ -579,26 +288,52 @@ tryToPlaceWord model (word, position, direction) =
   
   --(model)
 
+tryPossibleDirections: (List Char) -> WordGrid -> (Int, Int) -> Direction -> Int -> Maybe WordGrid
+tryPossibleDirections letters grid position direction n = 
+  let
+    grid_ = tryToPlaceChars letters grid position direction
+    continue = n > 0 
+  in
+    case (grid_, continue) of
+      (Nothing, True) -> 
+        -- Unable to fit word, trying the next direction
+        tryPossibleDirections letters grid position (Directions.next direction) (n-1)
+
+      (Nothing, False) -> 
+        -- Tried all directions, word just wont fit
+        Nothing
+
+      (Just g, _) ->
+        -- Word placed successfully 
+        Just g
+      
 
 
 tryToPlaceChars: (List Char) -> WordGrid -> (Int, Int) -> Direction -> Maybe WordGrid
-tryToPlaceChars chars grid position dir=
+tryToPlaceChars chars grid position dir =
   let 
     sanityCheck = positionOutOfBounds position grid
     char = List.head(chars)
     chars_ = Maybe.withDefault [] (List.tail(chars))
     position_ = getNextPosition position dir
     grid_ = WordGrid.setCell grid position char
-    -- _ = Debug.log "      char" char
-    -- _ = Debug.log "      chars_" chars_
-    -- _ = Debug.log "      position" position
-    -- _ = Debug.log "      position_" position_
   in 
     case (sanityCheck, char,  grid_) of
-      (True, _, _) -> Nothing
-      (_, Nothing, _) -> Just grid
-      (_, _, Just g) -> tryToPlaceChars chars_ g position_ dir
-      (_, _, Nothing) -> Nothing
+      (True, _, _) ->
+        -- Position is out of the grid, aborting
+        Nothing
+
+      (_, Nothing, _) ->
+        -- No more chars left to place, success
+        Just grid
+
+      (_, _, Just g) ->
+        -- Already placed n char(s), try to place n+1
+        tryToPlaceChars chars_ g position_ dir
+
+      (_, _, Nothing) ->
+        -- Cell was taken with a different letter
+        Nothing
 
 getNextPosition: (Int, Int) -> Direction -> (Int, Int)
 getNextPosition (x, y) direction=
@@ -608,22 +343,6 @@ getNextPosition (x, y) direction=
     y_ = y + dy
   in 
     (x_, y_)
-
--- placeLetterAndContinue: (Maybe Char) -> WordGrid -> (Int, Int) -> Direction -> WordGrid
--- placeLetterAndContinue letter grid (x,y) direction = 
---   let 
---     f = \c (x_, y_) dir -> (WordGrid.setCell grid ((x_, y_) dir) c)
---   in 
---   case f letter of
---     Just l -> placeLetterAndContinue 
-
-
-whileJust : (a -> Maybe a) -> a -> a
-whileJust f v =
-    case f v of
-        Just v_ -> whileJust f v_
-        Nothing -> v
-
 
 positionOutOfBounds: (Int, Int) -> WordGrid -> Bool
 positionOutOfBounds (x, y) grid=

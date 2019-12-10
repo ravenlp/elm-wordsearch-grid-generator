@@ -16,3 +16,8 @@
   vertical-align: middle;
   text-align: center;
 }
+
+button {
+  padding: 20px;
+  margin: 20px;
+}

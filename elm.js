@@ -6177,11 +6177,12 @@ var $author$project$Main$fetchWordList = $elm$http$Http$get(
 	});
 var $elm$core$Basics$round = _Basics_round;
 var $author$project$Main$init = function (flags) {
-	var size = 10;
+	var size = 12;
 	var fillRatio = 1;
 	var attempts = $elm$core$Basics$round((size * size) * fillRatio);
 	var model_ = {
 		attempts: attempts,
+		done: false,
 		grid: A2($author$project$WordGrid$create, size, $elm$core$Maybe$Nothing),
 		size: size,
 		wordList: _List_Nil,
@@ -6415,6 +6416,8 @@ var $author$project$Main$completeGrid = function (model) {
 	}(
 		$author$project$WordGrid$getSize(model.grid));
 };
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Main$external = _Platform_outgoingPort('external', $elm$json$Json$Encode$string);
 var $elm$core$List$append = F2(
 	function (xs, ys) {
 		if (!ys.b) {
@@ -7390,6 +7393,7 @@ var $author$project$Main$update = F2(
 				var attempts = msg.b;
 				var model_ = {
 					attempts: attempts,
+					done: false,
 					grid: A2($author$project$WordGrid$create, size, $elm$core$Maybe$Nothing),
 					size: size,
 					wordList: _List_Nil,
@@ -7440,7 +7444,9 @@ var $author$project$Main$update = F2(
 				var _v1 = _Utils_Tuple2(_continue, word);
 				if (!_v1.a) {
 					return _Utils_Tuple2(
-						model,
+						_Utils_update(
+							model,
+							{done: true}),
 						$author$project$Main$completeGrid(model));
 				} else {
 					if (_v1.b.$ === 'Nothing') {
@@ -7470,7 +7476,7 @@ var $author$project$Main$update = F2(
 					model,
 					_Utils_Tuple3(word, position, direction));
 				return _Utils_Tuple2(model_, $elm$core$Platform$Cmd$none);
-			default:
+			case 'StoreWordList':
 				var result = msg.a;
 				if (result.$ === 'Ok') {
 					var list = result.a;
@@ -7482,11 +7488,25 @@ var $author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
+			default:
+				return _Utils_Tuple2(
+					model,
+					$author$project$Main$external('print'));
 		}
 	});
 var $author$project$Main$GenerateGame = {$: 'GenerateGame'};
+var $author$project$Main$Print = {$: 'Print'};
 var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$string(string));
+	});
+var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$li = _VirtualDom_node('li');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
@@ -7505,15 +7525,6 @@ var $elm$html$Html$Events$onClick = function (msg) {
 		'click',
 		$elm$json$Json$Decode$succeed(msg));
 };
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			$elm$json$Json$Encode$string(string));
-	});
-var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$core$String$cons = _String_cons;
 var $elm$core$String$fromChar = function (_char) {
 	return A2($elm$core$String$cons, _char, '');
@@ -7568,30 +7579,49 @@ var $author$project$Main$showGrid = function (list) {
 };
 var $elm$html$Html$ul = _VirtualDom_node('ul');
 var $author$project$Main$view = function (model) {
+	var actionButton = model.done ? A2(
+		$elm$html$Html$button,
+		_List_fromArray(
+			[
+				$elm$html$Html$Events$onClick($author$project$Main$Print)
+			]),
+		_List_fromArray(
+			[
+				$elm$html$Html$text('Print')
+			])) : A2(
+		$elm$html$Html$button,
+		_List_fromArray(
+			[
+				$elm$html$Html$Events$onClick($author$project$Main$GenerateGame)
+			]),
+		_List_fromArray(
+			[
+				$elm$html$Html$text('Generate game')
+			]));
 	return A2(
 		$elm$html$Html$div,
-		_List_Nil,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('container')
+			]),
 		_List_fromArray(
 			[
 				A2(
-				$elm$html$Html$button,
+				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Events$onClick($author$project$Main$GenerateGame)
+						$elm$html$Html$Attributes$class('actions')
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Generate')
-					])),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$Main$PickRandomWord)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Add single word')
+						A2(
+						$elm$html$Html$h1,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Word search generator')
+							])),
+						actionButton
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -7603,7 +7633,10 @@ var $author$project$Main$view = function (model) {
 					])),
 				A2(
 				$elm$html$Html$ul,
-				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('wordList')
+					]),
 				A2(
 					$elm$core$List$map,
 					function (w) {

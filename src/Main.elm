@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Browser
 import Random
@@ -7,7 +7,7 @@ import Random.Char
 import Random.List
 import Maybe.Extra
 
-import Html exposing (Html, button, div, text, ul, li)
+import Html exposing (Html, h1, button, div, text, ul, li)
 import Html.Attributes as Attribute
 import Html.Events exposing (onClick)
 
@@ -34,9 +34,6 @@ main =
 
 
 -- MODEL
-
-
-
  
 type alias Model = 
   { grid: WordGrid
@@ -44,6 +41,7 @@ type alias Model =
   , attempts: Int
   , wordList: List String
   , wordsToFind: List String
+  , done: Bool
   }
   
 
@@ -59,7 +57,7 @@ type alias Job =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
   let
-    size = 10
+    size = 12
     fillRatio = 1 -- Bigger the number more words are placed on the grid, more time to generate it
     attempts = round(size * size * fillRatio)
     model_ = 
@@ -68,17 +66,18 @@ init flags =
       , attempts = attempts
       , wordList = []
       , wordsToFind = []
+      , done = False
       }
   in
     (model_, fetchWordList)
 
 
 -- SUBSCRIPTIONS
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.none
+
+port external : String -> Cmd msg
 
 -- UPDATE
 
@@ -91,6 +90,7 @@ type Msg
   | PickRandomWordResult (Maybe String, List String)
   | PlaceSelectedWord Job
   | StoreWordList (Result Http.Error (List String))
+  | Print
 
 
 
@@ -106,6 +106,7 @@ update msg model =
           , attempts = attempts
           , wordList = []
           , wordsToFind = []
+          , done = False
           }
       in 
         (model_, fetchWordList)
@@ -135,7 +136,7 @@ update msg model =
         case (continue, word) of
           (False, _) -> 
             -- Enough attempts 
-            (model , completeGrid model)
+            ({model | done = True} , completeGrid model)
 
           (True, Nothing) ->
             -- No more words
@@ -157,6 +158,9 @@ update msg model =
 
         Err _ ->
           (model, Cmd.none)
+
+    Print -> 
+      (model, external "print")
 
 -- Random UTILS
 
@@ -198,63 +202,6 @@ wordDecoder: Json.Decode.Decoder (List String)
 wordDecoder =
   Json.Decode.list Json.Decode.string
 
--- VIEW
-
-
-view : Model -> Html Msg
-view model =
-  div []
-    [ button [ onClick GenerateGame ] [ text "Generate" ]
-    , button [ onClick PickRandomWord ] [ text "Add single word" ]
-    , div [] [ showGrid (WordGrid.toLists model.grid)]
-    , ul [] (List.map (\w ->  li [] [text w]) model.wordsToFind)
-    ]
-
-cell : Html Msg
-cell = 
-  div [ Attribute.class "cell"] [ text " [ ] "]
-
-
-createColumns : Int -> Html Msg
-createColumns times = 
-  div
-    [ Attribute.class "row"
-    ]
-    (List.repeat times cell)
-
-
-createRows : Int -> Html Msg
-createRows times = 
-  let
-    rowList = List.repeat times (createColumns times)
-  in
-    div
-      [ Attribute.class "table"
-      ]
-      rowList
-
-showGrid: List (List (Maybe Char)) -> Html Msg 
-showGrid list = 
-  div
-    [ Attribute.class "grid"
-    ]
-    (List.map (\row -> showRow row) list)
-
-showRow: List (Maybe Char) -> Html Msg
-showRow row = 
-  div
-    [ Attribute.class "row"
-    ]
-    (List.map (\a -> div [Attribute.class "cell"][text (showChar a)]) row)
-
-showChar: Maybe Char -> String
-showChar posibleChar = 
-  case posibleChar of
-    Just a -> String.fromChar a
-    Nothing -> " "
-
-
--- 
 createEmptyGrid: Int -> WordGrid
 createEmptyGrid size =
   WordGrid.create size Nothing
@@ -350,3 +297,62 @@ completeGrid model = model.grid
           |> \x -> x * x
           |> randomString
           |> Random.generate FillGridWithRandomChars_
+
+
+-- VIEW 
+
+view : Model -> Html Msg
+view model =
+  let 
+    actionButton = if model.done
+      then button [ onClick Print ] [ text "Print" ]
+      else button [ onClick GenerateGame ] [ text "Generate game" ]
+  in
+  div [Attribute.class "container"]
+    [ div [Attribute.class "actions"] [h1 [] [text "Word search generator"], actionButton]
+    , div [] [ showGrid (WordGrid.toLists model.grid)]
+    , ul [ Attribute.class "wordList"] (List.map (\w ->  li [] [text w]) model.wordsToFind)
+    ]
+
+cell : Html Msg
+cell = 
+  div [ Attribute.class "cell"] [ text " [ ] "]
+
+
+createColumns : Int -> Html Msg
+createColumns times = 
+  div
+    [ Attribute.class "row"
+    ]
+    (List.repeat times cell)
+
+
+createRows : Int -> Html Msg
+createRows times = 
+  let
+    rowList = List.repeat times (createColumns times)
+  in
+    div
+      [ Attribute.class "table"
+      ]
+      rowList
+
+showGrid: List (List (Maybe Char)) -> Html Msg 
+showGrid list = 
+  div
+    [ Attribute.class "grid"
+    ]
+    (List.map (\row -> showRow row) list)
+
+showRow: List (Maybe Char) -> Html Msg
+showRow row = 
+  div
+    [ Attribute.class "row"
+    ]
+    (List.map (\a -> div [Attribute.class "cell"][text (showChar a)]) row)
+
+showChar: Maybe Char -> String
+showChar posibleChar = 
+  case posibleChar of
+    Just a -> String.fromChar a
+    Nothing -> " "

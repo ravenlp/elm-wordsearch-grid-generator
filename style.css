@@ -63,6 +63,27 @@ button {
   padding: 0 10px;
 }
 
+@media screen and (max-width:640px) {
+  .container {
+    width: 100%;
+    margin: 2px auto;
+  }
+  .grid {
+    max-width: 100%;
+  }
+  .cell {
+    width: 30px;
+    height: 30px;
+  }
+  .github-fork-ribbon {
+    display: none;
+  }
+  
+  button {
+    background-color: #fff;
+  }
+}
+
 @media print {
   button, .github-fork-ribbon {
     display: none;
